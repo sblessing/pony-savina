@@ -22,7 +22,7 @@ primitive NqueenkConfig
         )
         OptionSpec.u64(
           "priorities",
-          "The priority levels. Defaults to 10."
+          "The priority levels. Defaults to 10. Maximum value is 29."
           where short' = 'p', default' = 10
         )
         OptionSpec.u64(
@@ -36,10 +36,10 @@ primitive NqueenkConfig
 actor Nqueenk
   new run(args: Command val, env: Env) =>
     let workers = args.option("workers").u64()
-    let priorities = args.option("priorities").u64()
+    let priorities = U64(1).max(args.option("priorities").u64().min(29))
     let limit = args.option("solutions").u64()
-    let threshold = args.option("threshold").u64()
-    let size = args.option("size").u64()
+    let threshold = U64(1).max(args.option("threshold").u64().min(Solutions.max()))
+    let size = U64(1).max(args.option("size").u64().min(Solutions.max()))
     
     Master(this, workers, priorities, limit, threshold, size)
 
