@@ -77,27 +77,30 @@ actor Master
   let _workers: Array[Worker]
   let _num_blocks: U64
 
-  let _matrix_a: Array[Array[U64] iso] val
-  let _matrix_b: Array[Array[U64] iso] val
+  let _matrix_a: Array[Array[U64] val] val
+  let _matrix_b: Array[Array[U64] val] val
   let _matrix_c: Array[Array[U64]]
 
   new create(workers: U64, data_length: U64, threshold: U64) =>
     _workers = Array[Worker](workers.usize())
     _num_blocks = data_length * data_length
 
-    let a: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end
-    let b: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end
+    let a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
+    let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
       
     // Initialize the matrix
     try
       for i in Range[USize](0, data_length.usize()) do
-        a.push(recover Array[U64].init(U64(0), data_length.usize()) end)
-        b.push(recover Array[U64].init(U64(0), data_length.usize()) end)
+        let aI = recover Array[U64].init(U64(0), data_length.usize()) end
+        let bI = recover Array[U64].init(U64(0), data_length.usize()) end
 
         for j in Range[USize](0, data_length.usize()) do
-          a(i)?(j)? = i.u64()
-          b(i)?(j)? = j.u64()
+          aI(j)? = i.u64()
+          bI(j)? = j.u64()
         end
+
+        a.push(consume aI)
+        b.push(consume bI)
       end
     end
 
