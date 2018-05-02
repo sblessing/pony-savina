@@ -116,16 +116,18 @@ actor Worker
     true
 
   fun ref seq_kernel(data: Array[U64] val, depth: U64) =>
+    let new_depth = depth + 1
+
     if _size == depth then
       _master.result()
     else
-      for i in Range[U64](0, _size) do
-        _new_data = recover data.clone() end
+      _new_data = recover data.clone() end
 
+      for i in Range[U64](0, _size) do
         try _new_data(depth.usize()) ? = i end
 
-        if validate(depth + 1) then
-          seq_kernel(_new_data = recover Array[U64] end, depth)
+        if validate(new_depth) then
+          seq_kernel(_new_data = recover Array[U64] end, new_depth)
         end
       end
     end
