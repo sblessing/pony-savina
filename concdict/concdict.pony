@@ -1,0 +1,77 @@
+use "cli"
+use "collections"
+use "random"
+
+primitive ConcdictConfig
+  fun val apply(): CommandSpec iso^ ? =>
+    recover
+      CommandSpec.leaf("concdict", "", [
+        OptionSpec.u64(
+          "workers",
+          "The number of workers. Defaults to 20."
+          where short' = 'w', default' = 20
+        )
+        OptionSpec.u64(
+          "messages",
+          "The number of messages per worker. Defaults to 10000."
+          where short' = 'm', default' = 10000
+        )
+        OptionSpec.u64(
+          "percentage",
+          "The write percentage threshold. Defaults to 10."
+          where short' = 'p', default' = 10
+        )
+      ]) ?
+    end
+
+actor Concdict
+  new run(args: Command val, env: Env) =>
+    Master(
+      args.option("workers").u64(), 
+      args.option("messages").u64(),
+      args.option("percentage").u64()
+    )
+
+actor Master
+  new create(workers: U64, messages: U64, percentage: U64) =>
+    let dictionary = Dictionary
+
+    for i in Range[U64](0, workers) do
+      Worker(this, dictionary, messages, percentage).work()
+    end
+
+actor Worker
+  var _messages: U64
+  let _random: Rand
+  let _percentage: U64
+  let _dictionary: Dictionary
+
+  new create(master: Master, dictionary: Dictionary, messages: U64, percentage: U64) =>
+    _messages = messages
+    _random = Rand(messages * percentage)
+    _percentage = percentage
+    _dictionary = dictionary
+
+  be work(value: U64 = 0) =>
+    if (_messages = _messages - 1) > 1 then
+      let value' = _random.int(100)
+
+      if value' < _percentage then
+        _dictionary.write(this, value', value')
+      else
+        _dictionary.read(this, value')
+      end
+    end    
+
+actor Dictionary
+  var _map: HashMap[U64, U64, HashEq[U64]]
+
+  new create() =>
+    _map = HashMap[U64, U64, HashEq[U64]](U32.max_value().usize() / 4096)
+
+  be write(worker: Worker, key: U64, value: U64) =>
+    _map.add(key, value)
+    worker.work(value)
+
+  be read(worker: Worker, key: U64) =>
+    try worker.work(_map(key) ?) end
