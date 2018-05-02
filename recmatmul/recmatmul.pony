@@ -77,8 +77,8 @@ actor Master
   let _workers: Array[Worker]
   let _num_blocks: U64
 
-  //let _matrix_a: Array[Array[U64] val] val
-  //let _matrix_b: Array[Array[U64] val] val
+  let _matrix_a: Array[Array[U64] iso] val
+  let _matrix_b: Array[Array[U64] iso] val
   let _matrix_c: Array[Array[U64]]
 
   new create(workers: U64, data_length: U64, threshold: U64) =>
@@ -101,8 +101,8 @@ actor Master
       end
     end
 
-    //_matrix_a = consume a 
-    //_matrix_b = consume b 
+    _matrix_a = consume a 
+    _matrix_b = consume b 
     _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
