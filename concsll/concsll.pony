@@ -35,15 +35,16 @@ actor Concsll
       args.option("workers").u64(),
       args.option("messages").u64(),
       args.option("size").u64(),
-      args.option("write").u64()
+      args.option("write").u64(),
+      env
     )
 
 actor Master
-  new create(workers: U64, messages: U64, size: U64, write: U64) =>
+  new create(workers: U64, messages: U64, size: U64, write: U64, env: Env) =>
     let list = SortedList
 
     for i in Range[U64](0, workers) do
-      Worker(messages, size, write, list).work()
+      Worker(messages, size, write, list, env).work()
     end
 
 actor Worker
@@ -51,14 +52,16 @@ actor Worker
   let _size: U64
   let _write: U64
   let _list: SortedList
+  let _env: Env
 
   var _messages: U64
 
-  new create(messages: U64, size: U64, write: U64, list: SortedList) =>
+  new create(messages: U64, size: U64, write: U64, list: SortedList, env: Env) =>
     _random = Rand(messages + size + write)
     _size = size
     _write = write
     _list = list
+    _env = env
 
     _messages = messages
  
@@ -66,9 +69,11 @@ actor Worker
     if (_messages = _messages - 1) >= 1 then
       let value' = _random.int(100)
 
+      _env.out.print(value'.string())
+
       if value' < _size then
         _list.size(this)
-      elseif value < (_size + _write) then
+      elseif value' < (_size + _write) then
         _list.write(this, value')
       else
         _list.contains(this, value')
