@@ -24,7 +24,7 @@ primitive ConcsllConfig
         OptionSpec.u64(
           "write",
           "The insert percentage threshold. Defaults to 1."
-          where short' = 'w', default' = 1
+          where short' = 'p', default' = 1
         )
       ]) ?
     end
@@ -44,6 +44,7 @@ actor Master
     let list = SortedList
 
     for i in Range[U64](0, workers) do
+      env.out.print("creating worker: " + i.string())
       Worker(messages, size, write, list, env).work()
     end
 
@@ -66,10 +67,10 @@ actor Worker
     _messages = messages
  
   be work(value: U64 = 0) =>
-    if (_messages = _messages - 1) >= 1 then
-      let value' = _random.int(100)
+    _messages = _messages - 1
 
-      _env.out.print(value'.string())
+    if _message > 0 then
+      let value' = _random.int(100)
 
       if value' < _size then
         _list.size(this)
