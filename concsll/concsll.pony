@@ -30,7 +30,7 @@ primitive ConcsllConfig
     end
 
 actor Concsll
-  new run(args: Command val) =>
+  new run(args: Command val, env: Env) =>
     Master(
       args.option("workers").u64(),
       args.option("messages").u64(),
@@ -51,16 +51,14 @@ actor Worker
   let _size: U64
   let _write: U64
   let _list: SortedList
-  let _env: Env
 
   var _messages: U64
 
-  new create(messages: U64, size: U64, write: U64, list: SortedList, env: Env) =>
+  new create(messages: U64, size: U64, write: U64, list: SortedList) =>
     _random = Rand(messages + size + write)
     _size = size
     _write = write
     _list = list
-    _env = env
 
     _messages = messages
  

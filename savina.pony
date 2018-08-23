@@ -85,7 +85,7 @@ actor Main
         //env.out.print("Piprecision")
         env.out.print("Uct")
         env.out.print("Facloc")
-        env.out.print("Nqueenk")
+        //env.out.print("Nqueenk")
         env.out.print("Recmatmul")
       else
         match command.option("benchmark").string()
