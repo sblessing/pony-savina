@@ -30,22 +30,20 @@ primitive ConcsllConfig
     end
 
 actor Concsll
-  new run(args: Command val, env: Env) =>
+  new run(args: Command val) =>
     Master(
       args.option("workers").u64(),
       args.option("messages").u64(),
       args.option("size").u64(),
-      args.option("write").u64(),
-      env
+      args.option("write").u64()
     )
 
 actor Master
-  new create(workers: U64, messages: U64, size: U64, write: U64, env: Env) =>
+  new create(workers: U64, messages: U64, size: U64, write: U64) =>
     let list = SortedList
 
     for i in Range[U64](0, workers) do
-      env.out.print("creating worker: " + i.string())
-      Worker(messages, size, write, list, env).work()
+      Worker(messages, size, write, list).work()
     end
 
 actor Worker
@@ -114,6 +112,7 @@ class SortedLinkedList[A: Comparable[A] #read]
         try 
           if n() ? <= a then
             n.append(ListNode[A](a))
+            return
           end 
         end
       end
