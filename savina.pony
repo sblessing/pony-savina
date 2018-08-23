@@ -87,7 +87,7 @@ actor Main
 				//env.out.print("Facloc")
 				env.out.print("Fjthrput")
 				//env.out.print("Logmap")
-				//env.out.print("Nqueenk")
+				env.out.print("Nqueenk")
 				//env.out.print("Philosopher")
 				env.out.print("PingPong")
 				//env.out.print("Piprecision")
