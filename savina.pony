@@ -121,7 +121,7 @@ actor Main
     
     fun tag parse(spec: CommandSpec iso, env: Env): Command val ? =>
       recover
-        match CommandParser(consume spec).parse(env.args, env.vars)
+        match CommandParser(consume spec).parse(env.args, env.vars())
         | let command: Command box => command
         | let help: CommandHelp => help.print_help(env.out) ; env.exitcode(0) ; error
         | let syntax: SyntaxError => env.out.print(syntax.string()) ; env.exitcode(1) ; error

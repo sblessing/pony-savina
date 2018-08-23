@@ -69,7 +69,7 @@ actor Worker
   be work(value: U64 = 0) =>
     _messages = _messages - 1
 
-    if _message > 0 then
+    if _messages > 0 then
       let value' = _random.int(100)
 
       if value' < _size then
