@@ -7,23 +7,13 @@ primitive ChameneosConfig
       CommandSpec.leaf("chameneos", "", [
         OptionSpec.u64(
           "chameneos",
-          "The number of chameneos. Defaults to 100."
-          where short' = 'c', default' = 100
+          "The number of chameneos. Defaults to 500."
+          where short' = 'c', default' = 500
         )
         OptionSpec.u64(
           "meetings",
-          "The number meetings. Defaults to 200000."
-          where short' = 'm', default' = 200000
-        )
-        OptionSpec.u64(
-          "consumers",
-          "The number of consumers. Defaults to 40."
-          where short' = 'c', default' = 40
-        )
-        OptionSpec.bool(
-          "priorities",
-          "Use priorities. Defaults to true."
-          where short' = 'p', default' = true
+          "The number meetings. Defaults to 8000000."
+          where short' = 'm', default' = 8000000
         )
       ]) ?
     end
@@ -95,11 +85,11 @@ actor Mall
     if _meetings > 0 then
       _waiting = 
         match _waiting
-        | None => _waiting = approaching
+        | None => approaching
         | let chameneo: Chameneo =>
           _meetings = _meetings - 1
           chameneo.meet(approaching, color)
-          _waiting = None
+          None
         end
     else
       approaching.report()
@@ -114,6 +104,7 @@ actor Chameneo
     _mall = mall
     _color = color
     _meetings = 0
+    _mall.meet(this, color)
 
   be meet(approaching: Chameneo, color: ChameneoColor) =>
     _color = ColorComplement(_color, color)
