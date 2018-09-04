@@ -25,12 +25,10 @@ actor Cigsmok
 
 actor Arbiter
   var _smokers: Array[Smoker]
-  var _random: Rand
   var _rounds: U64
 
   new create(rounds: U64, smokers: U64) =>
     _smokers = Array[Smoker](smokers.usize())
-    _random = Rand(rounds * smokers)
     _rounds = rounds
 
     for i in Range[U64](0, smokers) do
@@ -45,8 +43,8 @@ actor Arbiter
     end
 
   fun ref notifySmoker() =>
-    let index = _random.next().abs().usize() % _smokers.size()
-    try _smokers(index)?.smoke(_random.int(1000) + 10) end
+    let index = Rand(Time.now()._2.u64()).next().abs().usize() % _smokers.size()
+    try _smokers(index)?.smoke(Rand(Time.now()._2.u64()).int(1000) + 10) end
 
 actor Smoker
   let _arbiter: Arbiter
