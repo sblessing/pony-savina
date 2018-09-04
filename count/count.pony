@@ -6,8 +6,8 @@ primitive CountConfig
       CommandSpec.leaf("count", "", [
         OptionSpec.u64(
           "messages",
-          "The number of messages. Defaults to 1000000."
-          where short' = 'n', default' = 1000000
+          "The number of messages. Defaults to 20000000."
+          where short' = 'n', default' = 20000000
         )
       ]) ?
     end
@@ -45,12 +45,12 @@ actor Producer
     
     counter.retrieve(this)
   
-  be result(result': U64) =>
-    if result' != _messages then
+  be result(result': U64) => None
+    /*if result' != _messages then
       _env.out.print("ERROR: expected: " + _messages.string() + ", found: " + result'.string())
     else
       _env.out.print("SUCCESS! received: " + result'.string())
-    end
+    end*/
 
   
 

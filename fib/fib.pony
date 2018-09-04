@@ -6,16 +6,16 @@ primitive FibConfig
       CommandSpec.leaf("fib", "", [
         OptionSpec.u64(
           "index",
-          "The index of the fibonacci number to compute. Defaults to 25."
-          where short' = 'i', default' = 25
+          "The index of the fibonacci number to compute. Defaults to 38."
+          where short' = 'i', default' = 10
         )
       ]) ?
     end
 
 actor Fib
   new run(args: Command val, env: Env) =>
-    var n = args.option("index").u64()
-    Fibonacci.parent(n, env) 
+    var n = args.option("index").u64().i64()
+    Fibonacci.root(n, env) 
 
 actor Fibonacci
   var _parent: (Fibonacci | None)
@@ -23,7 +23,7 @@ actor Fibonacci
   var _responses: U64
   var _result: U64
 
-  new parent(n: U64, env: Env) =>
+  new root(n: I64, env: Env) =>
     _parent = None
     _env = env
     _responses = 0
@@ -31,7 +31,7 @@ actor Fibonacci
 
     _compute(n)
 
-  new request(parent': Fibonacci, n: U64) =>
+  new request(parent': Fibonacci, n: I64) =>
     _parent = parent'
     _env = None
     _responses = 0
@@ -47,7 +47,7 @@ actor Fibonacci
       _propagate()
     end
 
-  fun ref _compute(n: U64) =>
+  fun ref _compute(n: I64) =>
     if n <= 2 then
       _result = 1
       _propagate()
@@ -58,6 +58,6 @@ actor Fibonacci
 
   fun ref _propagate() =>
     match (_parent, _env)
-    | (let parent': Fibonacci, _) => parent'.response(_result)
-    | (_, let env: Env) => env.out.print(" Result = " + _result.string()) 
+    | (let parent': Fibonacci, None) => parent'.response(_result)
+    | (None, let env: Env) => env.out.print(" Result = " + _result.string()) 
     end

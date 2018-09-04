@@ -6,8 +6,8 @@ primitive PingPongConfig
       CommandSpec.leaf("pingpong", "", [
         OptionSpec.u64(
           "pings",
-          "The number of pings. Defaults to 40000."
-          where short' = 'n', default' = 40000
+          "The number of pings. Defaults to 9000000."
+          where short' = 'n', default' = 9000000
         )
       ]) ?
     end
