@@ -1,6 +1,7 @@
 use "cli"
 use "collections"
 use "random"
+use "time"
 
 primitive CigsmokConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -8,13 +9,13 @@ primitive CigsmokConfig
       CommandSpec.leaf("cigsmok", "", [
         OptionSpec.u64(
           "rounds",
-          "The number of rounds. Defaults to 1000."
-          where short' = 'r', default' = 1000
+          "The number of rounds. Defaults to 1000000."
+          where short' = 'r', default' = 1000000
         )
         OptionSpec.u64(
           "smokers",
-          "The number of smokers. Defaults to 200."
-          where short' = 's', default' = 200
+          "The number of smokers. Defaults to 1000."
+          where short' = 's', default' = 1000
         )
       ]) ?
     end
@@ -58,6 +59,6 @@ actor Smoker
     var test: U64 = 0
 
     for i in Range[U64](0, period) do
-      Rand.next()
+      Rand(Time.now()._2.u64()).next()
       test = test + 1
     end
