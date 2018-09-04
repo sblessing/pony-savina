@@ -8,23 +8,23 @@ primitive BndBufferConfig
       CommandSpec.leaf("bndbuffer", "", [
         OptionSpec.u64(
           "buffersize",
-          "The size of the buffer. Defaults to 50."
-          where short' = 'b', default' = 50
+          "The size of the buffer. Defaults to 6000."
+          where short' = 'b', default' = 6000
         )
         OptionSpec.u64(
           "producers",
-          "The number of producers. Defaults to 40."
-          where short' = 'p', default' = 40
+          "The number of producers. Defaults to 5000."
+          where short' = 'p', default' = 5000
         )
         OptionSpec.u64(
           "consumers",
-          "The number of consumers. Defaults to 40."
-          where short' = 'c', default' = 40
+          "The number of consumers. Defaults to 2000."
+          where short' = 'c', default' = 2000
         )
         OptionSpec.u64(
           "items",
           "The number of items per producer. Defaults to 1000."
-          where short' = 'i', default' = 100
+          where short' = 'i', default' = 1000
         )
         OptionSpec.u64(
           "producercosts",
@@ -134,13 +134,16 @@ actor Producer
     _items = items
     _manager = manager
     _costs = costs
- 
-  be produce() =>
+    _produce()
+
+  fun ref _produce() =>
     if _items > 0 then
       _last = ItemProcessor(_last, _costs)
       _manager.data(this, _last)
       _items = _items - 1
     end
+ 
+  be produce() => _produce()
 
 actor Consumer
   var _last: F64
