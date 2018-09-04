@@ -1,6 +1,7 @@
 use "cli"
 use "collections"
 use "random"
+use "time"
 
 primitive BankingConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -8,13 +9,13 @@ primitive BankingConfig
       CommandSpec.leaf("banking", "", [
         OptionSpec.u64(
           "accounts",
-          "The number of accounts managed by each teller T. Defaults to 1000."
-          where short' = 'a', default' = 1000
+          "The number of accounts managed by each teller T. Defaults to 100000."
+          where short' = 'a', default' = 100000
         )
         OptionSpec.u64(
           "transactions",
-          "The number of transactions handeled by each teller X. Defaults to 50000."
-          where short' = 't', default' = 50000
+          "The number of transactions handeled by each teller X. Defaults to 5000000."
+          where short' = 't', default' = 5000000
         )
       ]) ?
     end
@@ -29,17 +30,15 @@ actor Banking
     _transactions = args.option("transactions").u64()
     _initial = F64.max_value() / ( _accounts * _transactions ).f64()
 
-    Teller(env, _initial, _accounts, _transactions).start()
+    Teller(_initial, _accounts, _transactions).start()
 
 actor Teller
-  let _env: Env
   let _initial_balance: F64
   let _transactions: U64
   var _completed: U64
   var _accounts: Array[Account]
  
-  new create(env: Env, initial_balance: F64, accounts: U64, transactions: U64) =>
-    _env = env
+  new create(initial_balance: F64, accounts: U64, transactions: U64) =>
     _initial_balance = initial_balance
     _transactions = transactions
     _completed = 0
@@ -52,13 +51,13 @@ actor Teller
   be start() =>
     for i in Range[U64](0, _transactions) do
       // Randomly pick source and destination account
-      let source = Rand().int[U64]((_accounts.size().u64() / 10) * 8)
-      let dest = Rand.int[U64](_accounts.size().u64() - source)
+      let source = Rand(Time.now()._2.u64()).int[U64]((_accounts.size().u64() / 10) * 8)
+      let dest = Rand(Time.now()._2.u64()).int[U64](_accounts.size().u64() - source)
 
       try
         let source_account = _accounts(source.usize()) ?
         let dest_account = _accounts(source.usize() + dest.usize()) ?
-        let amount = Rand.real() * 1000     
+        let amount = Rand(Time.now()._2.u64()).real() * 1000     
 
         source_account.credit(this, amount, dest_account)
       end

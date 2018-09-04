@@ -1,6 +1,7 @@
 use "cli"
 use "collections"
 use "random"
+use "time"
 
 primitive ConcsllConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -8,13 +9,13 @@ primitive ConcsllConfig
       CommandSpec.leaf("concsll", "", [
         OptionSpec.u64(
           "workers",
-          "The number of workers. Defaults to 20."
-          where short' = 'w', default' = 20
+          "The number of workers. Defaults to 10."
+          where short' = 'w', default' = 10
         )
         OptionSpec.u64(
           "messages",
-          "The number of messages per worker. Defaults to 8000."
-          where short' = 'm', default' = 8000
+          "The number of messages per worker. Defaults to 100000."
+          where short' = 'm', default' = 100000
         )
         OptionSpec.u64(
           "size",
@@ -47,7 +48,6 @@ actor Master
     end
 
 actor Worker
-  let _random: Rand
   let _size: U64
   let _write: U64
   let _list: SortedList
@@ -55,7 +55,6 @@ actor Worker
   var _messages: U64
 
   new create(messages: U64, size: U64, write: U64, list: SortedList) =>
-    _random = Rand(messages + size + write)
     _size = size
     _write = write
     _list = list
@@ -66,7 +65,7 @@ actor Worker
     _messages = _messages - 1
 
     if _messages > 0 then
-      let value' = _random.int(100)
+      let value' = Rand(Time.now()._2.u64()).int(100)
 
       if value' < _size then
         _list.size(this)
