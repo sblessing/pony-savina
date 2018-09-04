@@ -7,8 +7,8 @@ primitive TrapezoidConfig
       CommandSpec.leaf("trapezoid", "", [
         OptionSpec.u64(
           "pieces",
-          "The number of pieces. Defaults to 10000000."
-          where short' = 'p', default' = 10000000
+          "The number of pieces. Defaults to 50000000."
+          where short' = 'p', default' = 50000000
         )
         OptionSpec.u64(
           "workers",
@@ -55,15 +55,16 @@ actor Master
     let range: F64 = (right - left).f64() / workers.f64()
 
     for i in Range[F64](0, workers.f64()) do
-      Worker(this, (range * i) + left, left + range, precision)
+      let left' = (range * i) + left
+      Worker(this, left', left' + range, precision)
     end
 
   be result(area: F64) =>
     _result_area = _result_area + area
 
-    if (_workers = _workers - 1) == 1 then
+    /*if (_workers = _workers - 1) == 1 then
       _env.out.print("  Area: " + _result_area.string())
-    end
+    end*/
 
 primitive Fx
   fun apply(x: F64): F64 =>
@@ -76,10 +77,10 @@ primitive Fx
 
 actor Worker
   new create(master: Master, left: F64, right: F64, precision: F64) =>
-    let n: U64 = ((right - left) / precision).u64()
+    let n: F64 = ((right - left) / precision).f64()
     var accumulated_area: F64 = 0.0
 
-    var i: U64 = 0
+    var i: F64 = 0
 
     while i < n do
       let lx = (i.f64() * precision) + left
