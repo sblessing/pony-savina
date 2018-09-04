@@ -1,6 +1,7 @@
 use "cli"
 use "collections"
 use "random"
+use "time"
 
 primitive BigConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -8,13 +9,13 @@ primitive BigConfig
       CommandSpec.leaf("big", "", [
         OptionSpec.u64(
           "pings",
-          "The number of pings sent by each actor. Defaults to 20000."
-          where short' = 'p', default' = 20000
+          "The number of pings sent by each actor. Defaults to 200000."
+          where short' = 'p', default' = 200000
         )
         OptionSpec.u64(
           "actors",
-          "The number of actors. Defaults to 120."
-          where short' = 'a', default' = 120
+          "The number of actors. Defaults to 1200."
+          where short' = 'a', default' = 1200
         )
       ]) ?
     end
@@ -64,7 +65,7 @@ actor BigActor
   be pong(n: I64) =>
     if _sent < _pings then
       try
-        let target = _neighbors(Rand.int[USize](_neighbors.size())) ?
+        let target = _neighbors(Rand(Time.now()._2.u64()).int[USize](_neighbors.size())) ?
         target.ping(_index)
         _sent = _sent + 1
       end
