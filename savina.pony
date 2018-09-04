@@ -99,8 +99,6 @@ actor Main
         env.out.print("Threadring")      
         env.out.print("Trapezoid")
         env.out.print("Uct")
-        
-        
       else
         match command.option("benchmark").string()
         //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
