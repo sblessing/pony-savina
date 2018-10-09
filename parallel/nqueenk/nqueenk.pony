@@ -62,6 +62,24 @@ primitive BoardValidator
 
     consume data
 
+	fun validate(data: Array[U64] ref, depth: U64): Bool =>
+	  for i in Range[U64](0, depth) do
+      try
+        let p: U64 = data(i.usize())?
+
+        for j in Range[U64](i + 1, depth) do
+				  try
+            let q: U64 = data(j.usize()) ?
+						if not valid(i, j, p, q) then
+						  return false
+						end 
+					end					
+        end
+      end
+    end
+
+		true
+
 actor Nqueenk
   new run(args: Command val, env: Env) =>
     let workers = args.option("workers").u64()
@@ -131,23 +149,18 @@ actor Worker
     _size = size
 		_env = env
 
-  fun ref seq_kernel(data: Array[U64] val, depth: U64) =>
-    let new_depth = depth + 1
+	fun ref rec_kernel(data: Array[U64] ref, depth: U64, new_depth: U64) =>
+	    if _size == depth then
+			  _master.result()
+		  else
+				for i in Range[U64](0, _size) do 
+					try data(depth.usize()) ? = i end
 
-    if _size == depth then
-      _master.result()
-    else
-		  var new_data = recover Array[U64].init(U64(0), new_depth.usize()) end
-		  new_data.append(data, 0, depth.usize())
-      
-      for i in Range[U64](0, _size) do 
-        try new_data(depth.usize()) ? = i end
-
-        match BoardValidator(new_data, new_depth)
-				| let valid: Array[U64] iso => seq_kernel(consume valid, new_depth)
-        end
-      end
-    end
+           if BoardValidator.validate(data, depth) then
+					   rec_kernel(data, new_depth, new_depth + 1)
+					 end					
+				end
+			end
 
   fun ref par_kernel(priority: U64, depth: U64, data: Array[U64] val) =>
 	  let new_priority = priority - 1
@@ -156,7 +169,9 @@ actor Worker
 		if _size == depth then
       _master.result()
     elseif depth >= _threshold then
-			seq_kernel(data, depth)
+		  var new_data = Array[U64].init(U64(0), new_depth.usize())
+		  new_data.append(data, 0, depth.usize())
+			rec_kernel(new_data, depth, new_depth)
 	  else 
       for i in Range[U64](0, _size) do
         var new_data = recover Array[U64].init(U64(0), new_depth.usize()) end
