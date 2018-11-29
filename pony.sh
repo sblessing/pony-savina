@@ -1,6 +1,6 @@
 #!/bin/bash
 TEMPLATE=$(cat runner_template.txt)
-RUNTIME=$(../ponyc/build/release/ponyc --version)
+RUNTIME="Pony $(../ponyc/build/release/ponyc --version)"
 
 BEST_RESULT=""
 WORST_RESULT=""
@@ -19,7 +19,7 @@ function float_eval {
     local result=0.0
     if [[ $# -gt 0 ]]; then
         result=$(echo "scale=3; $*" | bc -l -q 2>/dev/null)
-				result=$(printf '%.3f\n' ${result})
+	result=$(printf '%.3f\n' ${result})
         stat=$?
         if [[ $stat -eq 0  &&  -z "$result" ]]; then stat=1; fi
     fi
@@ -138,14 +138,16 @@ function variation {
 
 for bench in $(./$1 -l); do
   RESULTS=()
+  STDOUT=()
 
 	for i in `seq 1 $2`; do
 	  START=`date +%s.%N`
-		./$1 -b=$bench > /dev/null
-    END=`date +%s.%N`
+	  STDOUT+=(./$1 -b=$bench)
+          END=`date +%s.%N`
 
-		DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
-		RESULTS+=(${DIFF})
+          DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
+	  RESULTS+=(${DIFF})
+	  STDOUT+=("${bench}\tIteration-$i:  ${DIFF} ms")
 	done
 
 	SORTED_RESULTS=( 
@@ -175,6 +177,10 @@ for bench in $(./$1 -l); do
 	OUTFILE=${OUTFILE//__BENCHMARK__/${bench}}
 	OUTFILE=${OUTFILE//__NUMBER_OF_ITERATIONS__/$2}
 
+	iterations=$(join "\n" ${STDOUT[@]})
+
+	echo ${iterations}
+
 	OUTFILE=${OUTFILE//__BEST__/${BEST_RESULT}}
 	OUTFILE=${OUTFILE//__WORST__/${WORST_RESULT}}
 	OUTFILE=${OUTFILE//__MEDIAN__/${MEDIAN_RESULT}}
@@ -188,7 +194,7 @@ for bench in $(./$1 -l); do
 	OUTFILE=${OUTFILE//__PERCENT__/${ERROR_WINDOW_PERCENT}}
 	OUTFILE=${OUTFILE//__VARIANCE__/${VARIATION_RESULT}}
 	
-	echo "${OUTFILE}" >> /home/sebastian/Development/PhD/${3}/${bench}.txt
+	echo "${OUTFILE}" #>> /home/sebastian/Development/PhD/${3}/${bench}.txt
 
 
 done
