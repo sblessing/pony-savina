@@ -136,18 +136,24 @@ function variation {
 #
 #}
 
-for bench in $(./$1 -l); do
+for runner in $(./$1 -l); do
   RESULTS=()
   STDOUT=()
+  bench=$(echo ${runner} | cut -d "," -f1)
+  tag=$(echo ${runner} | cut -d "," -f2)
 
 	for i in `seq 1 $2`; do
 	  START=`date +%s.%N`
-	  STDOUT+=(./$1 -b=$bench)
+	  BENCHOUT="$(./$1 -b=$bench --ponynoblock)"
           END=`date +%s.%N`
+	  
+	  if [[ !  -z  $BENCHOUT  ]]; then
+	    STDOUT+=("$(./$1 -b=$bench)")
+          fi
 
           DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
 	  RESULTS+=(${DIFF})
-	  STDOUT+=("${bench}\tIteration-$i:  ${DIFF} ms")
+	  STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms")
 	done
 
 	SORTED_RESULTS=( 
@@ -173,13 +179,14 @@ for bench in $(./$1 -l); do
 	#SKEWNESS_RESULT=skewness ${SORTED_RESULTS[@]}
 
 	OUTFILE=${TEMPLATE}
+	ID=${tag// /}
 	OUTFILE=${OUTFILE/__RUNTIME__/${RUNTIME}}
 	OUTFILE=${OUTFILE//__BENCHMARK__/${bench}}
+	OUTFILE=${OUTFILE//__ID__/${ID}}
 	OUTFILE=${OUTFILE//__NUMBER_OF_ITERATIONS__/$2}
 
-	iterations=$(join "\n" ${STDOUT[@]})
-
-	echo ${iterations}
+        ITERATIONS=$(printf '%s\n' "${STDOUT[@]}")
+	OUTFILE=${OUTFILE//__ITERATIONS__/${ITERATIONS}}
 
 	OUTFILE=${OUTFILE//__BEST__/${BEST_RESULT}}
 	OUTFILE=${OUTFILE//__WORST__/${WORST_RESULT}}
@@ -194,7 +201,6 @@ for bench in $(./$1 -l); do
 	OUTFILE=${OUTFILE//__PERCENT__/${ERROR_WINDOW_PERCENT}}
 	OUTFILE=${OUTFILE//__VARIANCE__/${VARIATION_RESULT}}
 	
-	echo "${OUTFILE}" #>> /home/sebastian/Development/PhD/${3}/${bench}.txt
-
+	echo "${OUTFILE}" >> /home/sebastian/Development/PhD/${3}/${bench}.txt
 
 done

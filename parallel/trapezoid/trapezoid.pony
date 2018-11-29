@@ -7,8 +7,8 @@ primitive TrapezoidConfig
       CommandSpec.leaf("trapezoid", "", [
         OptionSpec.u64(
           "pieces",
-          "The number of pieces. Defaults to 50000000."
-          where short' = 'p', default' = 50000000
+          "The number of pieces. Defaults to 10000000."
+          where short' = 'p', default' = 10000000
         )
         OptionSpec.u64(
           "workers",
@@ -62,9 +62,9 @@ actor Master
   be result(area: F64) =>
     _result_area = _result_area + area
 
-    /*if (_workers = _workers - 1) == 1 then
+    if (_workers = _workers - 1) == 1 then
       _env.out.print("  Area: " + _result_area.string())
-    end*/
+    end
 
 primitive Fx
   fun apply(x: F64): F64 =>
