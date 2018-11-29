@@ -6,8 +6,8 @@ primitive FibConfig
       CommandSpec.leaf("fib", "", [
         OptionSpec.u64(
           "index",
-          "The index of the fibonacci number to compute. Defaults to 30."
-          where short' = 'i', default' = 30
+          "The index of the fibonacci number to compute. Defaults to 25."
+          where short' = 'i', default' = 25
         )
       ]) ?
     end

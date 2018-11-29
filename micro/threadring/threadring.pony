@@ -12,7 +12,7 @@ primitive ThreadRingConfig
         )
         OptionSpec.u64(
           "pass",
-          "Number of pass messages. Does not need to be divisible by N. Defaults to 100.000."
+          "Number of pass messages. Does not need to be divisible by N. Defaults to 100000."
           where short' = 'r', default' = 100000
         )
       ]) ?

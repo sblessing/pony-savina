@@ -7,13 +7,13 @@ primitive ChameneosConfig
       CommandSpec.leaf("chameneos", "", [
         OptionSpec.u64(
           "chameneos",
-          "The number of chameneos. Defaults to 500."
-          where short' = 'c', default' = 500
+          "The number of chameneos. Defaults to 100."
+          where short' = 'c', default' = 100
         )
         OptionSpec.u64(
           "meetings",
-          "The number meetings. Defaults to 8000000."
-          where short' = 'm', default' = 8000000
+          "The number meetings. Defaults to 200000."
+          where short' = 'm', default' = 200000
         )
       ]) ?
     end

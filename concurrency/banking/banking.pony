@@ -9,13 +9,13 @@ primitive BankingConfig
       CommandSpec.leaf("banking", "", [
         OptionSpec.u64(
           "accounts",
-          "The number of accounts managed by each teller T. Defaults to 100000."
-          where short' = 'a', default' = 100000
+          "The number of accounts managed by each teller T. Defaults to 1000."
+          where short' = 'a', default' = 1000
         )
         OptionSpec.u64(
           "transactions",
-          "The number of transactions handeled by each teller X. Defaults to 5000000."
-          where short' = 't', default' = 5000000
+          "The number of transactions handeled by each teller X. Defaults to 50000."
+          where short' = 't', default' = 50000
         )
       ]) ?
     end

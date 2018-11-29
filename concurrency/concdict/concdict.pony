@@ -9,18 +9,18 @@ primitive ConcdictConfig
       CommandSpec.leaf("concdict", "", [
         OptionSpec.u64(
           "workers",
-          "The number of workers. Defaults to 100."
-          where short' = 'w', default' = 100
+          "The number of workers. Defaults to 20."
+          where short' = 'w', default' = 20
         )
         OptionSpec.u64(
           "messages",
-          "The number of messages per worker. Defaults to 1000000."
-          where short' = 'm', default' = 1000000
+          "The number of messages per worker. Defaults to 10000."
+          where short' = 'm', default' = 10000
         )
         OptionSpec.u64(
           "percentage",
           "The write percentage threshold. Defaults to 10."
-          where short' = 'p', default' = 85
+          where short' = 'p', default' = 10
         )
       ]) ?
     end

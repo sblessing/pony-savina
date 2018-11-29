@@ -8,18 +8,18 @@ primitive BndBufferConfig
       CommandSpec.leaf("bndbuffer", "", [
         OptionSpec.u64(
           "buffersize",
-          "The size of the buffer. Defaults to 6000."
-          where short' = 's', default' = 6000
+          "The size of the buffer. Defaults to 50."
+          where short' = 's', default' = 50
         )
         OptionSpec.u64(
           "producers",
-          "The number of producers. Defaults to 5000."
-          where short' = 'p', default' = 5000
+          "The number of producers. Defaults to 40."
+          where short' = 'p', default' = 40
         )
         OptionSpec.u64(
           "consumers",
-          "The number of consumers. Defaults to 2000."
-          where short' = 'c', default' = 2000
+          "The number of consumers. Defaults to 40."
+          where short' = 'c', default' = 40
         )
         OptionSpec.u64(
           "items",

@@ -6,8 +6,8 @@ primitive CountConfig
       CommandSpec.leaf("count", "", [
         OptionSpec.u64(
           "messages",
-          "The number of messages. Defaults to 20000000."
-          where short' = 'n', default' = 20000000
+          "The number of messages. Defaults to 1000000."
+          where short' = 'n', default' = 1000000
         )
       ]) ?
     end

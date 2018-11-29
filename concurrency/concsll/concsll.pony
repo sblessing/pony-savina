@@ -9,13 +9,13 @@ primitive ConcsllConfig
       CommandSpec.leaf("concsll", "", [
         OptionSpec.u64(
           "workers",
-          "The number of workers. Defaults to 10."
-          where short' = 'w', default' = 10
+          "The number of workers. Defaults to 20."
+          where short' = 'w', default' = 20
         )
         OptionSpec.u64(
           "messages",
-          "The number of messages per worker. Defaults to 100000."
-          where short' = 'm', default' = 100000
+          "The number of messages per worker. Defaults to 8000."
+          where short' = 'm', default' = 8000
         )
         OptionSpec.u64(
           "size",

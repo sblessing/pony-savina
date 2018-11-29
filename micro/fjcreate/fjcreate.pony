@@ -7,8 +7,8 @@ primitive FjcreateConfig
       CommandSpec.leaf("fjcreate", "", [
         OptionSpec.u64(
           "workers",
-          "The total number of actors to create. Defaults to 10000000."
-          where short' = 'w', default' = 10000000
+          "The total number of actors to create. Defaults to 40000."
+          where short' = 'w', default' = 40000
         )
       ]) ?
     end

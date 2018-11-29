@@ -9,13 +9,13 @@ primitive BigConfig
       CommandSpec.leaf("big", "", [
         OptionSpec.u64(
           "pings",
-          "The number of pings sent by each actor. Defaults to 200000."
-          where short' = 'p', default' = 200000
+          "The number of pings sent by each actor. Defaults to 20000."
+          where short' = 'p', default' = 20000
         )
         OptionSpec.u64(
           "actors",
-          "The number of actors. Defaults to 1200."
-          where short' = 'a', default' = 1200
+          "The number of actors. Defaults to 120."
+          where short' = 'a', default' = 120
         )
       ]) ?
     end

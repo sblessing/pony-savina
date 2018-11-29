@@ -9,13 +9,13 @@ primitive CigsmokConfig
       CommandSpec.leaf("cigsmok", "", [
         OptionSpec.u64(
           "rounds",
-          "The number of rounds. Defaults to 1000000."
-          where short' = 'r', default' = 1000000
+          "The number of rounds. Defaults to 1000."
+          where short' = 'r', default' = 1000
         )
         OptionSpec.u64(
           "smokers",
-          "The number of smokers. Defaults to 1000."
-          where short' = 's', default' = 1000
+          "The number of smokers. Defaults to 200."
+          where short' = 's', default' = 200
         )
       ]) ?
     end
