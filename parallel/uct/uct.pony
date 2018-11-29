@@ -25,7 +25,7 @@ primitive UctConfig
         OptionSpec.u64(
           "binomial",
           "Binomial parameter. Each node may have either 0 or binomial children. Defaults to 10."
-          where short' = 'b', default' = 10
+          where short' = 'i', default' = 10
         )
       ]) ?
     end

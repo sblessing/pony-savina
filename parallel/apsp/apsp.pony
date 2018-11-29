@@ -14,7 +14,7 @@ primitive ApspConfig
         OptionSpec.u64(
           "blocks",
           "The block size handeled by each worker. Defaults to 50."
-          where short' = 'b', default' = 50
+          where short' = 's', default' = 50
         )
         OptionSpec.u64(
           "workers",

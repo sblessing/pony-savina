@@ -27,7 +27,7 @@ primitive FaclocConfig
         OptionSpec.u64(
           "cutoff",
           "The cutoff depth. Defauls to 3."
-          where short' = 's', default' = 3
+          where short' = 'c', default' = 3
         )
       ]) ?
     end

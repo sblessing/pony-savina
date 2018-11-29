@@ -9,7 +9,7 @@ primitive BndBufferConfig
         OptionSpec.u64(
           "buffersize",
           "The size of the buffer. Defaults to 6000."
-          where short' = 'b', default' = 6000
+          where short' = 's', default' = 6000
         )
         OptionSpec.u64(
           "producers",

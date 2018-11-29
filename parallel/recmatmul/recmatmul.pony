@@ -18,7 +18,7 @@ primitive RecmatmulConfig
         OptionSpec.u64(
           "blocks",
           "The block threshold. Defaults to 16384."
-          where short' = 'b', default' = 16384
+          where short' = 't', default' = 16384
         )
         OptionSpec.u64(
           "priorities",

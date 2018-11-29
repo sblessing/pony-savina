@@ -13,7 +13,7 @@ primitive SieveConfig
         OptionSpec.u64(
           "buffersize",
           "The buffer size at each sieve actor. Defaults to 1000."
-          where short' = 'b', default' = 1000
+          where short' = 'u', default' = 1000
         )
       ]) ?
     end
