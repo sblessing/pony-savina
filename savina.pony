@@ -1,12 +1,12 @@
 use "cli"
 
 use "concurrency/banking"
-use barber ="concurrency/barber"
+use barber = "concurrency/barber"
 use bndbuffer = "concurrency/bndbuffer"
 use "concurrency/cigsmok"
 use "concurrency/concdict"
 use concsll = "concurrency/concsll"
-//use "concurrency/logmap"
+use "concurrency/logmap"
 //use "concurrency/philosopher"
 
 use "micro/big"
@@ -23,15 +23,15 @@ use "micro/threadring"
 //use "parallel/bitonicsort"
 //use "parallel/facloc"
 //use "parallel/filterbank"
-use nqueenk = "parallel/nqueenk"
+//use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
 //use "parallel/quicksort"
 //use "parallel/radixsort"
-//use recmatmul = "parallel/recmatmul"
-use "parallel/sieve"
+//use recmatsmul = "parallel/recmatmul"
+//use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
-use "parallel/uct"
+//use "parallel/uct"
 
 interface Configurable
   fun val apply(): CommandSpec iso^ ?
@@ -77,7 +77,7 @@ actor Main
         env.out.print("Cigsmok,Cigarette_Smokers")
         env.out.print("Concdict,Concurrent_Dictionary")
         env.out.print("Concsll,Concurrent_Sorted_Linked-List")
-        //env.out.print("Logmap")
+        env.out.print("Logmap")
         //env.out.print("Philosopher")
         env.out.print("Big,Big")
         env.out.print("Chameneos,Chameneos")
@@ -97,7 +97,7 @@ actor Main
 				//env.out.print("Quicksort")
 				//env.out.print("Radixsort")
 				//env.out.print("Recmatmul")
-				env.out.print("Sieve,Sieve_of_Eratosthenes")
+				//env.out.print("Sieve,Sieve_of_Eratosthenes")
 				//env.out.print("Sor")
 				env.out.print("Trapezoid,Trapezoidal_Approximation")
 				//env.out.print("Uct")
@@ -109,7 +109,7 @@ actor Main
         | "Cigsmok" => Cigsmok.run(parse(CigsmokConfig() ?, env) ?, env)
         | "Concdict" => Concdict.run(parse(ConcdictConfig() ?, env) ?, env)
         | "Concsll" => concsll.Concsll.run(parse(concsll.ConcsllConfig() ?, env) ?, env)
-        //| "Logmap" => Logmap.run(parse(LogmapConfig() ?, env) ?, env)
+        | "Logmap" => Logmap.run(parse(LogmapConfig() ?, env) ?, env)
         //| "Philosopher" => Philosopher.run(parse(PhilosopherConfig() ?, env) ?, env)
         | "Big"     => Big.run(parse(BigConfig() ?, env) ?, env)
         | "Chameneos" => Chameneos.run(parse(ChameneosConfig() ?, env) ?, env)
@@ -124,12 +124,12 @@ actor Main
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
         //| "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				
         //| "Filterbank"   => Filterbank.run(parse(FilterbankConfig() ?, env) ?, env)
-				| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
+				//| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
 				//| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
         //| "Quicksort" => Quicksort.run(parse(QuicksortConfig() ?, env) ?, env)
         //| "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
         //| "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
-				| "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
+				//| "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
         | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
         //| "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
