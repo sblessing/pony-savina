@@ -61,7 +61,7 @@ actor WaitingRoom
   new create(size: U64, barber: Barber) =>
     _size = size
     _customers = List[Customer]
-    _barber_sleeps = false
+    _barber_sleeps = true
     _barber = barber
   
   be enter(customer: Customer) =>
@@ -104,8 +104,7 @@ actor Barber
 actor CustomerFactory
   var _number_of_haircuts: U64 
   var _attempts: U64
-
-  var _room: WaitingRoom 
+  var _room: WaitingRoom
 
   new serve(haircuts: U64, rate: U64, room: WaitingRoom) =>
     _number_of_haircuts = 0
