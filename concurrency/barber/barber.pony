@@ -43,9 +43,14 @@ primitive BusyWaiter
 
 actor SleepingBarber
   new run(args: Command val, env: Env) =>
-    let barber = Barber(args.option("cut").u64())
-    let room = WaitingRoom(args.option("room").u64(), barber)
-    let factory = CustomerFactory.serve(args.option("haircuts").u64(), room, args.option("production").u64())
+    CustomerFactory.serve(
+      args.option("haircuts").u64(),
+      args.option("production").u64(),
+      WaitingRoom(
+        args.option("room").u64(), 
+        Barber(args.option("cut").u64())
+      )
+    )
 
 actor WaitingRoom
   var _size: U64
@@ -102,7 +107,7 @@ actor CustomerFactory
 
   var _room: WaitingRoom 
 
-  new serve(haircuts: U64, room: WaitingRoom, rate: U64) =>
+  new serve(haircuts: U64, rate: U64, room: WaitingRoom) =>
     _number_of_haircuts = 0
     _attempts = 0
     _room = room
