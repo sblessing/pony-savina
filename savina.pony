@@ -7,7 +7,7 @@ use "concurrency/cigsmok"
 use "concurrency/concdict"
 use concsll = "concurrency/concsll"
 use "concurrency/logmap"
-//use "concurrency/philosopher"
+use "concurrency/philosopher"
 
 use "micro/big"
 use "micro/chameneos"
@@ -78,7 +78,7 @@ actor Main
         env.out.print("Concdict,Concurrent_Dictionary")
         env.out.print("Concsll,Concurrent_Sorted_Linked-List")
         env.out.print("Logmap")
-        //env.out.print("Philosopher")
+        env.out.print("Philosopher")
         env.out.print("Big,Big")
         env.out.print("Chameneos,Chameneos")
         env.out.print("Count,Counting_Actor")
@@ -110,7 +110,7 @@ actor Main
         | "Concdict" => Concdict.run(parse(ConcdictConfig() ?, env) ?, env)
         | "Concsll" => concsll.Concsll.run(parse(concsll.ConcsllConfig() ?, env) ?, env)
         | "Logmap" => Logmap.run(parse(LogmapConfig() ?, env) ?, env)
-        //| "Philosopher" => Philosopher.run(parse(PhilosopherConfig() ?, env) ?, env)
+        | "Philosopher" => DiningPhilosophers.run(parse(PhilosopherConfig() ?, env) ?, env)
         | "Big"     => Big.run(parse(BigConfig() ?, env) ?, env)
         | "Chameneos" => Chameneos.run(parse(ChameneosConfig() ?, env) ?, env)
         | "Count" => Count.run(parse(CountConfig() ?, env) ?, env)
