@@ -72,7 +72,7 @@ actor Main
 
       if command.option("list").bool() == true then
         env.out.print("Banking,Banking")
-        env.out.print("Barber,Barber") 
+        env.out.print("Barber,Sleeping_Barber") 
         env.out.print("BndBuffer,Producer-Consumer_with_Bounded_Buffer")
         env.out.print("Cigsmok,Cigarette_Smokers")
         env.out.print("Concdict,Concurrent_Dictionary")
