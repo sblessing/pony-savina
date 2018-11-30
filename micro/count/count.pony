@@ -45,7 +45,7 @@ actor Producer
     
     counter.retrieve(this)
   
-  be result(result': U64)
+  be result(result': U64) =>
     if result' != _messages then
       _env.out.print("ERROR: expected: " + _messages.string() + ", found: " + result'.string())
     else
