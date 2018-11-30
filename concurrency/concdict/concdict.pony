@@ -52,7 +52,7 @@ actor Worker
     _dictionary = dictionary
 
   be work(value: U64 = 0) =>
-    if (_messages = _messages - 1) > 1 then
+    if (_messages = _messages - 1) >= 1 then
       var value' = Rand(Time.now()._2.u64()).int(100)
       value' = value' % (I64.max_value() / 4096).u64()
 
@@ -74,4 +74,4 @@ actor Dictionary
     worker.work(value)
 
   be read(worker: Worker, key: U64) =>
-    try worker.work(_map(key) ?) end
+    worker.work(try _map(key) ? else 0 end)
