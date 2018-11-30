@@ -6,7 +6,7 @@ use "concurrency/banking"
 use "micro/fib"
 //use "parallel/filterbank"
 use "micro/fjcreate"
-//use "concurrency/barber"
+use barber ="concurrency/barber"
 use "micro/big"
 //use "parallel/bitonicsort"
 use bndbuffer = "concurrency/bndbuffer"
@@ -75,7 +75,7 @@ actor Main
 				env.out.print("Fib,Fibonacci")
 				//env.out.print("Filterbank")
 				env.out.print("Fjcreate,Fork_Join_(actor_creation)")
-        //env.out.print("Barber")        
+        env.out.print("Barber,Barber")        
         env.out.print("Big,Big")
         //env.out.print("Bitonicsort")
 				env.out.print("BndBuffer,Producer-Consumer_with_Bounded_Buffer")
@@ -107,7 +107,7 @@ actor Main
 				| "Fib"     => Fib.run(parse(FibConfig() ?, env) ?, env)
         //| "Filterbank"   => Filterbank.run(parse(FilterbankConfig() ?, env) ?, env)
 				| "Fjcreate" => Fjcreate.run(parse(FjcreateConfig() ?, env) ?, env)
-				//| "Barber"  => SleepingBarber.run(parse(BarberConfig() ?, env) ?, env)
+				| "Barber"  => barber.SleepingBarber.run(parse(barber.BarberConfig() ?, env) ?, env)
         | "Big"     => Big.run(parse(BigConfig() ?, env) ?, env)
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
 				| "BndBuffer" => bndbuffer.BndBuffer.run(parse(bndbuffer.BndBufferConfig() ?, env) ?, env)
@@ -130,7 +130,7 @@ actor Main
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
         | "Threadring" => ThreadRing.run(parse(ThreadRingConfig() ?, env) ?, env)
         | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
-        | "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
+        //| "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
         else
           error
         end
