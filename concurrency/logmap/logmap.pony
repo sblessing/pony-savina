@@ -78,11 +78,11 @@ actor LogmapMaster
         for j in Range[USize](0, _workers.size()) do
           _workers(j)?.next()
         end
+      end
 
-        for k in Range[USize](0, _workers.size()) do
-          _workers(k)?.get()
-          _requested = _requested + 1
-        end
+			for k in Range[USize](0, _workers.size()) do
+        _workers(k)?.get()
+        _requested = _requested + 1
       end
     end
   
@@ -97,21 +97,36 @@ actor LogmapMaster
 actor SeriesWorker
   var _master: LogmapMaster
   var _computer: RateComputer
-  var _current_term: Array[F64]
+  var _term: F64
+	var _stashes: List[F64]
+	var _unfulfilled_gets: U64
 
   new create(master: LogmapMaster, computer: RateComputer, term: F64) =>
     _master = master
     _computer = computer
-    _current_term = Array[F64].init(term, USize(1))
+    _term = term
+    _stashes = List[F64]
+		_unfulfilled_gets = 0
 
   be next() =>
-    try _computer.compute(this, _current_term(0) ? ) end
-    
-  be result(term: F64) =>
-    try _current_term(0) ? = term end
+    _computer.compute(this, _term) 
 
+	be result(term: F64) =>
+	  _term = term
+
+		if _unfulfilled_gets > 0 then
+		  _unfulfilled_gets = _unfulfilled_gets - 1
+			_master.result(_term)
+		else
+		  _stashes.push(_term)
+		end 
+	
   be get() =>
-    try _master.result(_current_term(0) ? ) end
+    try
+		  _master.result(_stashes.shift()?) 
+		else
+		  _unfulfilled_gets = _unfulfilled_gets + 1
+		end
 
 actor RateComputer
   var _rate: F64
