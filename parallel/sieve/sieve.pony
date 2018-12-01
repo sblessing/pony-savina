@@ -40,11 +40,11 @@ actor PrimeFilter
 
   new create(initial: U64 = 2, size: U64) =>
     _size = size
-    _available = size
+    _available = 1
     _next = None
-    _locals = Array[U64](size.usize())
+    _locals = Array[U64].init(0, size.usize())
 
-    _locals.push(initial)
+    try _locals(0) ? = initial end
 
   be check(value: U64) =>
     try
@@ -68,9 +68,9 @@ actor PrimeFilter
     true
 
   fun ref _handle_prime(value: U64) =>
-    if _available > 0 then
-      _locals.push(value)
-      _available = _available - 1
+    if _available < _size then
+      try _locals(_available.usize()) ? = value end
+      _available = _available + 1
     else
       _next = PrimeFilter(value, _size)
     end
