@@ -8,7 +8,7 @@ primitive NqueenkConfig
         OptionSpec.u64(
           "workers",
           "The number of workers. Defaults to 20."
-          where short' = 'w', default' = 1
+          where short' = 'w', default' = 20
         )
         OptionSpec.u64(
           "size",
