@@ -201,6 +201,6 @@ for runner in $(./$1 -l); do
 	OUTFILE=${OUTFILE//__PERCENT__/${ERROR_WINDOW_PERCENT}}
 	OUTFILE=${OUTFILE//__VARIANCE__/${VARIATION_RESULT}}
 	
-	echo "${OUTFILE}" >> /home/sebastian/Development/PhD/${3}/${bench}.txt
+	echo "${OUTFILE}" >> ${3}/${bench}.txt
 
 done
