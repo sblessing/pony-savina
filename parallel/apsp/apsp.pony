@@ -112,7 +112,6 @@ actor Apsp
       end
     end
 
-
 actor FloydWarshall
   var _id: U64
   var _nodes: U64
@@ -123,7 +122,7 @@ actor FloydWarshall
   var _count_neighbors: USize
   var _completions: I64
   var _data: GraphData val
-  var _neighbors: (List[FloydWarshall] val | None)
+  var _neighbors: List[FloydWarshall] val
   var _neighbor_data: Map[U64, Array[Array[U64]] val]
   var _current_data: Array[Array[U64]] val
   var _finished: Bool
@@ -138,19 +137,16 @@ actor FloydWarshall
     _column_offset = (_id % _blocks) * _size
     _completions = -1
     _data = data
-    _neighbors = None
+    _neighbors = recover List[FloydWarshall] end
     _neighbor_data = Map[U64, Array[Array[U64]] val]
     _current_data = _data.get_block(_id)
     _finished = false
 
   fun ref _notify() =>
-    match _neighbors
-    | let n: List[FloydWarshall] val =>
-      for neighbor in n.nodes() do
-         try neighbor()?.result(_completions, _id, _current_data) end
-      end
+    for neighbor in _neighbors.nodes() do
+       try neighbor()?.result(_completions, _id, _current_data) end
     end
-
+    
   fun ref _store(completions: I64, from: U64, data: Array[Array[U64]] val): Bool =>
     _neighbor_data(from) = data
     _neighbor_data.size() == _count_neighbors
@@ -204,5 +200,5 @@ actor FloydWarshall
     if _store(completions, from, data) and (not _finished) then
       _completions = _completions + 1
       _compute() ; _notify() ; _neighbor_data = Map[U64, Array[Array[U64]] val]
-      _finished = _completions.u64() == _nodes
+      _finished = _completions.u64() == (_nodes - 1)
     end

@@ -7,6 +7,7 @@ WORST_RESULT=""
 MEDIAN_RESULT=""
 ARITHMETIC_MEAN_RESULT=""
 GEOMETRIC_MEAN_RESULT=""
+HARMONIC_MEAN_RESULT=""
 STANDARD_DEVIATION_RESULT=""
 CONFIDENCE_LOW_RESULT=""
 CONFIDENCE_HIGH_RESULT=""
@@ -84,7 +85,7 @@ function harmonic_mean {
 	LENGTH=${#PARAM[@]}
 
 	for i in "${!PARAM[@]}"; do
-	  PARAM[$i]=$(float_eval "1/${PARAM[$i]}")
+	  PARAM[$i]="1/${PARAM[$i]}"
 	done
 
 	EXPR=$(join "+" ${PARAM[@]})
@@ -170,7 +171,7 @@ for runner in $(./$1 -l); do
 	median ${SORTED_RESULTS[@]}
 	arithmetic_mean ${SORTED_RESULTS[@]}
 	geometric_mean ${SORTED_RESULTS[@]}
-  harmonic_mean ${SORTED_RESULTS[@]}
+    harmonic_mean ${SORTED_RESULTS[@]}
 	standard_deviation ${SORTED_RESULTS[@]}
 	confidence_low ${SORTED_RESULTS[@]}
 	confidence_high ${SORTED_RESULTS[@]}
@@ -185,7 +186,7 @@ for runner in $(./$1 -l); do
 	OUTFILE=${OUTFILE//__ID__/${ID}}
 	OUTFILE=${OUTFILE//__NUMBER_OF_ITERATIONS__/$2}
 
-        ITERATIONS=$(printf '%s\n' "${STDOUT[@]}")
+    ITERATIONS=$(printf '%s\n' "${STDOUT[@]}")
 	OUTFILE=${OUTFILE//__ITERATIONS__/${ITERATIONS}}
 
 	OUTFILE=${OUTFILE//__BEST__/${BEST_RESULT}}
