@@ -76,7 +76,7 @@ function geometric_mean {
 	BASE=$(float_eval "$EXPR")
 	EXPO=$(float_eval "${BASE}/${LENGTH}")
 
-	GEOMETRIC_MEAN_RESULT=$(float_eval "10^${EXPO}")
+	GEOMETRIC_MEAN_RESULT=$(float_eval "e(${EXPO}*l(10))")
 }
 
 function harmonic_mean {
