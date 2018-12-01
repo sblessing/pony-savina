@@ -94,39 +94,48 @@ actor LogmapMaster
       _env.out.print("Terms sum: " + _sum.string())
     end
 
+primitive PendingGetMessage
+
 actor SeriesWorker
   var _master: LogmapMaster
   var _computer: RateComputer
   var _term: F64
-	var _stashes: List[F64]
-	var _unfulfilled_gets: U64
+	var _stashes: List[PendingGetMessage]
+  var _reply_mode: Bool
 
   new create(master: LogmapMaster, computer: RateComputer, term: F64) =>
     _master = master
     _computer = computer
     _term = term
-    _stashes = List[F64]
-		_unfulfilled_gets = 0
+    _stashes = List[PendingGetMessage]
+    _reply_mode = false
+
+  fun ref _recycle() =>
+    if (not _reply_mode) and (_stashes.size() > 0) then
+      try _stashes.shift()? ; get() end
+    end
 
   be next() =>
-    _computer.compute(this, _term) 
+    if _reply_mode then
+      _stashes.push(PendingGetMessage)
+    else
+      _computer.compute(this, _term)
+      _reply_mode = true
+    end
 
 	be result(term: F64) =>
 	  _term = term
+    _reply_mode = false 
 
-		if _unfulfilled_gets > 0 then
-		  _unfulfilled_gets = _unfulfilled_gets - 1
-			_master.result(_term)
-		else
-		  _stashes.push(_term)
-		end 
+    _recycle()
 	
   be get() =>
-    try
-		  _master.result(_stashes.shift()?) 
+    if (_stashes.size() == 0) and (not _reply_mode) then
+		  _master.result(_term)
 		else
-		  _unfulfilled_gets = _unfulfilled_gets + 1
-		end
+		  _stashes.push(PendingGetMessage)
+      _recycle()
+		end    
 
 actor RateComputer
   var _rate: F64
