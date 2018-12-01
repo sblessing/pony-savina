@@ -7,8 +7,8 @@ primitive ApspConfig
     recover
       CommandSpec.leaf("apsp", "", [
         OptionSpec.u64(
-          "nodes",
-          "The number of nodes in the input graph. Defaults to 300."
+          "workers",
+          "The number of worker in the input graph. Defaults to 300."
           where short' = 'n', default' = 300
         )
         OptionSpec.u64(
@@ -17,35 +17,35 @@ primitive ApspConfig
           where short' = 's', default' = 50
         )
         OptionSpec.u64(
-          "workers",
-          "The number of workers. Defaults to 100."
+          "weight",
+          "The maximum edge weight. Defaults to 100."
           where short' = 'w', default' = 100
         )
       ]) ?
     end 
 
 class GraphData
-  var _nodes: U64
-  var _size: U64
   var _workers: U64
+  var _size: U64
+  var _weight: U64
   var _data: Array[Array[U64]]
 
-  new generate(nodes: U64, size: U64, workers: U64) =>
-    _nodes = nodes
-    _size = size
+  new generate(workers: U64, size: U64, weight: U64) =>
     _workers = workers
+    _size = size
+    _weight = weight
     
-    _data = Array[Array[U64]].init(Array[U64].init(0, nodes.usize()), nodes.usize())
+    _data = Array[Array[U64]].init(Array[U64].init(0, _workers.usize()), _workers.usize())
 
-    let random = Rand(_nodes)
+    let random = Rand(_workers)
 
-    for i in Range[USize](0, nodes.usize()) do
-      for j in Range[USize](0, nodes.usize()) do
-        let weight = random.int(_workers) + 1
+    for i in Range[USize](0, workers.usize()) do
+      for j in Range[USize](0, workers.usize()) do
+        let value = random.int(_weight) + 1
         
         try
-          _data(i)?(j)? = weight
-          _data(j)?(i)? = weight
+          _data(i)?(j)? = value
+          _data(j)?(i)? = value
         end
       end
     end
@@ -54,7 +54,7 @@ class GraphData
   fun val get_block(id: U64): Array[Array[U64]] val =>
     recover
       var local = Array[Array[U64]].init(Array[U64].init(0, _size.usize()), _size.usize())
-      let dim = _nodes / _size
+      let dim = _workers / _size
       let start_row = ((id / dim) * _size).usize()
       let start_col = ((id % dim) * _size).usize()
 
@@ -69,11 +69,11 @@ class GraphData
 
 actor Apsp
   new run(args: Command val, env: Env) =>
-    let nodes = args.option("nodes").u64()
-    let size = args.option("blocks").u64()
     let workers = args.option("workers").u64()
-    let dim = nodes / size
-    let data: GraphData val = recover GraphData.generate(nodes, size, workers) end
+    let size = args.option("blocks").u64()
+    let weight = args.option("weight").u64()
+    let dim = workers / size
+    let data: GraphData val = recover GraphData.generate(workers, size, weight) end
 
     let block_actors = Array[Array[FloydWarshall]]
 
@@ -82,7 +82,7 @@ actor Apsp
       block_actors.push(row)
       
       for j in Range[U64](0, dim) do
-        row.push(FloydWarshall((i * dim) + j, nodes, size, data))
+        row.push(FloydWarshall((i * dim) + j, workers, size, data))
       end
     end
 
