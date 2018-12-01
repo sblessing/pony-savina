@@ -1,6 +1,6 @@
 use "cli"
 
-use "concurrency/banking"
+//use "concurrency/banking"
 use barber = "concurrency/barber"
 use bndbuffer = "concurrency/bndbuffer"
 use "concurrency/cigsmok"
@@ -18,7 +18,7 @@ use "micro/fjthrput"
 use "micro/pingpong"
 use "micro/threadring"
 
-//use "parallel/apsp"
+use "parallel/apsp"
 //use "parallel/astar"
 //use "parallel/bitonicsort"
 //use "parallel/facloc"
@@ -71,7 +71,7 @@ actor Main
       let command = parse(consume spec, env) ?
 
       if command.option("list").bool() == true then
-        env.out.print("Banking,Banking")
+        //env.out.print("Banking,Banking")
         env.out.print("Barber,Sleeping_Barber") 
         env.out.print("BndBuffer,Producer-Consumer_with_Bounded_Buffer")
         env.out.print("Cigsmok,Cigarette_Smokers")
@@ -87,7 +87,7 @@ actor Main
         env.out.print("Fjthrput,Fork_Join_(throughput)")
         env.out.print("PingPong,Ping_Pong")
         env.out.print("Threadring,Thread_Ring") 
-        //env.out.print("Apsp")
+        env.out.print("Apsp,All-Pairs_Shortest_Path")
         //env.out.print("Astar")
         //env.out.print("Bitonicsort")
         //env.out.print("Facloc")			
@@ -103,7 +103,7 @@ actor Main
 				//env.out.print("Uct")
       else
         match command.option("benchmark").string()
-        | "Banking" => Banking.run(parse(BankingConfig() ?, env) ?, env)
+        //| "Banking" => Banking.run(parse(BankingConfig() ?, env) ?, env)
         | "Barber"  => barber.SleepingBarber.run(parse(barber.BarberConfig() ?, env) ?, env)
         | "BndBuffer" => bndbuffer.BndBuffer.run(parse(bndbuffer.BndBufferConfig() ?, env) ?, env)
         | "Cigsmok" => Cigsmok.run(parse(CigsmokConfig() ?, env) ?, env)
@@ -119,7 +119,7 @@ actor Main
         | "Fjthrput" => Fjthrput.run(parse(FjthrputConfig() ?, env) ?, env)
         | "PingPong" => PingPong.run(parse(PingPongConfig() ?, env) ?, env)
         | "Threadring" => ThreadRing.run(parse(ThreadRingConfig() ?, env) ?, env)
-        //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
+        | "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
         //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
         //| "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				

@@ -70,7 +70,7 @@ actor Dictionary
     _map = HashMap[U64, U64, HashEq[U64]](U32.max_value().usize() / 4096)
 
   be write(worker: Worker, key: U64, value: U64) =>
-    _map.add(key, value)
+    _map(key) = value
     worker.work(value)
 
   be read(worker: Worker, key: U64) =>
