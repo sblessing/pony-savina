@@ -94,48 +94,73 @@ actor LogmapMaster
       _env.out.print("Terms sum: " + _sum.string())
     end
 
-primitive PendingGetMessage
+primitive NextMessage
+primitive GetMessage
+
+type StashedMessage is 
+  ( (NextMessage, F64)
+  | (GetMessage, F64) 
+  )
+
+class Stash
+  var _master: LogmapMaster
+  var _worker: SeriesWorker
+  var _computer: RateComputer
+ 
+  var _buffer: List[StashedMessage]
+
+  new create(master: LogmapMaster, worker: SeriesWorker, computer: RateComputer) =>
+    _master = master
+    _worker = worker
+    _computer = computer
+    _buffer = List[StashedMessage]
+
+  fun ref stash(message: StashedMessage) =>
+    _buffer.push(message)
+
+  fun ref unstash_all() =>
+    for stashed_message in _buffer.nodes() do
+      try
+        match stashed_message()?
+        | (NextMessage, let term: F64) => _computer.compute(_worker, term)
+        | (GetMessage, let computed_term: F64) => _master.result(computed_term)
+        end
+      end
+    end
 
 actor SeriesWorker
   var _master: LogmapMaster
   var _computer: RateComputer
   var _term: F64
-	var _stashes: List[PendingGetMessage]
-  var _reply_mode: Bool
+	var _stash: (Stash | None)
 
   new create(master: LogmapMaster, computer: RateComputer, term: F64) =>
     _master = master
     _computer = computer
     _term = term
-    _stashes = List[PendingGetMessage]
-    _reply_mode = false
-
-  fun ref _recycle() =>
-    if (not _reply_mode) and (_stashes.size() > 0) then
-      try _stashes.shift()? ; get() end
-    end
+    _stash = None
 
   be next() =>
-    if _reply_mode then
-      _stashes.push(PendingGetMessage)
+    match _stash
+    | let s: Stash => s.stash((NextMessage, _term))
     else
       _computer.compute(this, _term)
-      _reply_mode = true
-    end
+      _stash = Stash(_master, this, _computer)
+    end     
 
 	be result(term: F64) =>
-	  _term = term
-    _reply_mode = false 
+    _term = term
 
-    _recycle()
+	  match _stash
+    | let s: Stash => s.unstash_all() ; _stash = None
+    end
 	
   be get() =>
-    if (_stashes.size() == 0) and (not _reply_mode) then
-		  _master.result(_term)
-		else
-		  _stashes.push(PendingGetMessage)
-      _recycle()
-		end    
+    match _stash
+    | let s: Stash => s.stash((GetMessage, _term))
+    else
+      _master.result(_term)
+    end
 
 actor RateComputer
   var _rate: F64
@@ -145,4 +170,3 @@ actor RateComputer
 
   be compute(worker: SeriesWorker, term: F64) =>
     worker.result(_rate * term * (1 - term))
-    
