@@ -1,7 +1,6 @@
 use "cli"
 use "collections"
-
-use @printf[I32](fmt: Pointer[U8] tag, ...) 
+use "format"
 
 primitive LogmapConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -75,8 +74,8 @@ actor LogmapMaster
           _workers(j)?.next()
         end
       end
-
-			for k in Range[USize](0, _workers.size()) do
+      
+      for k in Range[USize](0, _workers.size()) do
         _workers(k)?.get()
         _requested = _requested + 1
       end
@@ -87,7 +86,7 @@ actor LogmapMaster
     _received = _received + 1
 
     if _received == _requested then
-      _env.out.print("Terms sum: " + _sum.string())
+      _env.out.print("Terms sum: " + Format.float[F64](_sum where prec = 14, fmt = FormatFix))
     end
 
 primitive NextMessage
