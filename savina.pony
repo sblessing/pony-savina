@@ -18,7 +18,7 @@ use "micro/fjthrput"
 use "micro/pingpong"
 use "micro/threadring"
 
-use "parallel/apsp"
+//use "parallel/apsp"
 //use "parallel/astar"
 //use "parallel/bitonicsort"
 //use "parallel/facloc"
@@ -28,7 +28,7 @@ use "parallel/apsp"
 //use "parallel/quicksort"
 //use "parallel/radixsort"
 //use recmatsmul = "parallel/recmatmul"
-//use "parallel/sieve"
+use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
 //use "parallel/uct"
@@ -87,7 +87,7 @@ actor Main
         env.out.print("Fjthrput,Fork_Join_(throughput)")
         env.out.print("PingPong,Ping_Pong")
         env.out.print("Threadring,Thread_Ring") 
-        env.out.print("Apsp,All-Pairs_Shortest_Path")
+        //env.out.print("Apsp,All-Pairs_Shortest_Path")
         //env.out.print("Astar")
         //env.out.print("Bitonicsort")
         //env.out.print("Facloc")			
@@ -97,7 +97,7 @@ actor Main
 				//env.out.print("Quicksort")
 				//env.out.print("Radixsort")
 				//env.out.print("Recmatmul")
-				//env.out.print("Sieve,Sieve_of_Eratosthenes")
+				env.out.print("Sieve,Sieve_of_Eratosthenes")
 				//env.out.print("Sor")
 				env.out.print("Trapezoid,Trapezoidal_Approximation")
 				//env.out.print("Uct")
@@ -119,7 +119,7 @@ actor Main
         | "Fjthrput" => Fjthrput.run(parse(FjthrputConfig() ?, env) ?, env)
         | "PingPong" => PingPong.run(parse(PingPongConfig() ?, env) ?, env)
         | "Threadring" => ThreadRing.run(parse(ThreadRingConfig() ?, env) ?, env)
-        | "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
+        //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
         //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
         //| "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				
@@ -129,7 +129,7 @@ actor Main
         //| "Quicksort" => Quicksort.run(parse(QuicksortConfig() ?, env) ?, env)
         //| "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
         //| "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
-				//| "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
+				| "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
         | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
         //| "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
