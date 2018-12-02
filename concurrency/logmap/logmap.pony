@@ -96,10 +96,11 @@ actor LogmapMaster
 
 primitive NextMessage
 primitive GetMessage
+primitive UnknownTerm
 
 type StashedMessage is 
-  ( (NextMessage, F64)
-  | (GetMessage, F64) 
+  ( (NextMessage, (F64 | UnknownTerm))
+  | (GetMessage, (F64 | UnknownTerm)) 
   )
 
 class Stash
@@ -118,13 +119,47 @@ class Stash
   fun ref stash(message: StashedMessage) =>
     _buffer.push(message)
 
+  fun ref populate(term: F64) =>
+    // Find the leading pair of next and get messages
+    // and populate the computed term, but if and only
+    // if the term is unknown
+    var found_next = false
+    var found_get = false
+
+    for stashed_message in _buffer.nodes() do
+      try 
+        let node = stashed_message()?
+
+        match node
+        | (NextMessage, UnknownTerm) => stashed_message.update((NextMessage, term))? ; found_next = true
+        | (GetMessage, UnknownTerm) => stashed_message.update((GetMessage, term))? ; found_get = true
+        end
+      end
+
+      if found_get and found_next then
+        break
+      end
+    end
+
   fun ref unstash_all() =>
+    var subsequent_stash = false
+
     for stashed_message in _buffer.nodes() do
       try
-        match stashed_message()?
-        | (NextMessage, let term: F64) => _computer.compute(_worker, term)
-        | (GetMessage, let computed_term: F64) => _master.result(computed_term)
+        let node = stashed_message()?
+
+        if not subsequent_stash then
+          match node
+          | (NextMessage, let term: F64) => 
+            _computer.compute(_worker, term) ; subsequent_stash = true   
+          | (GetMessage, let computed_term: F64) => 
+            _master.result(computed_term)
+          end
+        else
+          _buffer.push(node) // Invariant: This node has an UnknownTerm
         end
+
+        _buffer.shift()? 
       end
     end
 
@@ -142,7 +177,7 @@ actor SeriesWorker
 
   be next() =>
     match _stash
-    | let s: Stash => s.stash((NextMessage, _term))
+    | let s: Stash => s.stash((NextMessage, UnknownTerm))
     else
       _computer.compute(this, _term)
       _stash = Stash(_master, this, _computer)
@@ -152,12 +187,12 @@ actor SeriesWorker
     _term = term
 
 	  match _stash
-    | let s: Stash => s.unstash_all() ; _stash = None
+    | let s: Stash => s.populate(_term) ; s.unstash_all() ; _stash = None
     end
 	
   be get() =>
     match _stash
-    | let s: Stash => s.stash((GetMessage, _term))
+    | let s: Stash => s.stash((GetMessage, UnknownTerm))
     else
       _master.result(_term)
     end
