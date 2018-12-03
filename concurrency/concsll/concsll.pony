@@ -3,8 +3,6 @@ use "collections"
 use "random"
 use "time"
 
-use @printf[I32](fmt: Pointer[U8] tag, ...)
-
 primitive ConcsllConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
@@ -70,13 +68,10 @@ actor Worker
       let value' = Rand(Time.now()._2.u64()).int(100)
 
       if value' < _size then
-			  @printf[I32]("Size!\n".cstring())
         _list.size(this)
       elseif value' < (_size + _write) then
-			  @printf[I32]("Write!\n".cstring())
         _list.write(this, value')
       else
-			  @printf[I32]("Contains!\n".cstring())
         _list.contains(this, value')
       end
     end
