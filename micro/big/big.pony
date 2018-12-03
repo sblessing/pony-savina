@@ -65,7 +65,8 @@ actor BigActor
   be pong(n: I64) =>
     if _sent < _pings then
       try
-        let target = _neighbors(Rand(Time.now()._2.u64()).int[USize](_neighbors.size())) ?
+			  let index = Rand(Time.now()._2.u64()).int[USize](_neighbors.size())
+        let target = _neighbors(index) ?
         target.ping(_index)
         _sent = _sent + 1
       end

@@ -3,6 +3,8 @@ use "collections"
 use "random"
 use "time"
 
+use @printf[I32](fmt: Pointer[U8] tag, ...)
+
 primitive ConcsllConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
@@ -19,13 +21,13 @@ primitive ConcsllConfig
         )
         OptionSpec.u64(
           "size",
-          "The size percentage threshold. Defaults to 10."
-          where short' = 's', default' = 10
+          "The size percentage threshold. Defaults to 1."
+          where short' = 's', default' = 1
         )
         OptionSpec.u64(
           "write",
-          "The insert percentage threshold. Defaults to 1."
-          where short' = 'p', default' = 1
+          "The insert percentage threshold. Defaults to 10."
+          where short' = 'p', default' = 10
         )
       ]) ?
     end
@@ -68,10 +70,13 @@ actor Worker
       let value' = Rand(Time.now()._2.u64()).int(100)
 
       if value' < _size then
+			  @printf[I32]("Size!\n".cstring())
         _list.size(this)
       elseif value' < (_size + _write) then
+			  @printf[I32]("Write!\n".cstring())
         _list.write(this, value')
       else
+			  @printf[I32]("Contains!\n".cstring())
         _list.contains(this, value')
       end
     end
