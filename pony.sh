@@ -157,10 +157,11 @@ function skewness {
   if (($length > 1)); then
     for executionTime in "${PARAM[@]}"; do
       local diff=$(float_eval "${executionTime}-${mean}")
-      sum=$(float_eval "${sum}*${diff}*${diff}*${diff}")
+      sum=$(float_eval "${sum}+${diff}*${diff}*${diff}")
       count=$((${count}+1))
     done
     
+		echo "COMPUTE: ${sum}/((${count}-1)*${sd}*${sd}*${sd})"
     SKEWNESS_RESULT=$(float_eval "${sum}/((${count}-1)*${sd}*${sd}*${sd})")
   else
     SKEWNESS_RESULT=0
