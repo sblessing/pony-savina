@@ -2,6 +2,12 @@
 TEMPLATE=$(cat runner_template.txt)
 RUNTIME="Pony $(ponyc --version)"
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  DATE="gdate +%s.%N"
+else
+  DATE="date +%s.%N"
+fi
+
 BEST_RESULT=""
 WORST_RESULT=""
 MEDIAN_RESULT=""
@@ -43,7 +49,9 @@ function best {
 
 function worst {
   PARAM=("$@")
-  WORST_RESULT=${PARAM[-1]}
+	LENGTH=${#PARAM[@]}
+	LAST=`expr ${LENGTH} - 1`
+  WORST_RESULT=${PARAM[${LAST}]}
 }
 
 function median {
@@ -139,16 +147,16 @@ function variation {
 
 function skewness {
   PARAM=("$@")
-  local length = ${#PARAM[@]}
+  local length=${#PARAM[@]}
 
-  local sum = 0
-  local count = 0
-  local mean = ${ARITHMETIC_MEAN_RESULT}
-  local sd = ${STANDARD_DEVIATION_RESULT}
+  local sum=0
+  local count=0
+  local mean=${ARITHMETIC_MEAN_RESULT}
+  local sd=${STANDARD_DEVIATION_RESULT}
 
   if (($length > 1)); then
     for executionTime in "${PARAM[@]}"; do
-      local diff = $(float_eval "${executionTime}-${mean}")
+      local diff=$(float_eval "${executionTime}-${mean}")
       sum=$(float_eval "${sum}*${diff}*${diff}*${diff}")
       count=$((${count}+1))
     done
@@ -157,21 +165,20 @@ function skewness {
   else
     SKEWNESS_RESULT=0
   fi
-
 }
 
-for runner in $(./$1 -l); do
+for runner in $($1 -l); do
   RESULTS=()
   STDOUT=()
   bench=$(echo ${runner} | cut -d "," -f1)
 
   for i in `seq 1 $2`; do
-    START=`date +%s.%N`
-    BENCHOUT="$(./$1 -b=$bench --ponynoblock)"
-    END=`date +%s.%N`
+    START=`${DATE}`
+    BENCHOUT="$($1 -b=${bench} --ponynoblock)"
+    END=`${DATE}`
 	  
     if [[ !  -z  $BENCHOUT  ]]; then
-      STDOUT+=("$(./$1 -b=$bench)")
+      STDOUT+=("${BENCHOUT}")
     fi
 
     DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
