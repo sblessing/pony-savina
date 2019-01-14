@@ -90,7 +90,9 @@ function produce_plot {
 
     eval "gnuplot ${OUT}"
 
-	  CREATED+=(${OUT})
+    if [[ ! "${CREATED[@]}" =~ "${OUT}" ]]; then
+      CREATED+=(${OUT})
+    fi
 
 	  break
 	done
