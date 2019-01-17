@@ -112,11 +112,13 @@ for folder in ${ARGS[@]::${#ARGS[@]}-1}; do
   for benchmark in $FILES; do
     path=$(dirname ${benchmark})
     name=$(grep 'Benchmark:' ${benchmark} | sed 's/^.*: //')
-	  id=$(cat plot_config.json | jq -r ".\"$(basename ${benchmark})\"")
-	  
-    if [[ ! "${PLOTS[@]}" =~ "${name}:${id}" ]]; then
-      PLOTS+=("$name:$id")
-	    CREATED+=(plot_${name}.txt)
+		file=$(basename ${benchmark})
+	  id=$(cat plot_config.json | jq -r ".\"${file}\"")
+		key=${file//".txt"/}
+
+    if [[ ! "${PLOTS[@]}" =~ "${key}:${id}" ]]; then
+      PLOTS+=("$key:$id")
+	    CREATED+=(plot_${key}.txt)
     fi
 
     core_count=$(basename ${path} | cut -d "_" -f 3)
@@ -124,7 +126,7 @@ for folder in ${ARGS[@]::${#ARGS[@]}-1}; do
     worst=$(grep 'Worst Time:' ${benchmark} | sed 's/^.*: //' | egrep -o '[0-9]+.[0-9]+')
     median=$(grep 'Median:' ${benchmark} | sed 's/^.*: //' | egrep -o '[0-9]+.[0-9]+')
 
-    echo "${core_count},${median},${best},${worst}" >> plot_${name}.txt
+    echo "${core_count},${median},${best},${worst}" >> "plot_${key}.txt"
   done
 done
 
