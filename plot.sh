@@ -63,6 +63,7 @@ function produce_plot {
     echo "set xlabel 'Cores'" >> ${OUT}
     echo "set ylabel 'Execution Time (Milliseconds, Median)'" >> ${OUT}
     #echo "set logscale y" >> ${OUT}
+		echo "set xtics 2" >> ${OUT}
     echo "set datafile separator \",\"" >> ${OUT}
     echo "set title \"${TITLE}\"" >> ${OUT}
 
