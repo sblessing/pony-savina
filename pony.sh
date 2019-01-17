@@ -161,7 +161,6 @@ function skewness {
       count=$((${count}+1))
     done
     
-		echo "COMPUTE: ${sum}/((${count}-1)*${sd}*${sd}*${sd})"
     SKEWNESS_RESULT=$(float_eval "${sum}/((${count}-1)*${sd}*${sd}*${sd})")
   else
     SKEWNESS_RESULT=0
