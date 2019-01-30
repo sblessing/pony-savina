@@ -176,7 +176,7 @@ for runner in $($1 -l); do
   for i in `seq 1 $2`; do
     START=`${DATE}`
 
-		if [ "${LAST}" = "memory" ]; then
+		if [ "${LAST}" -eq "memory" ]; then
 		  MEMORY="$(valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponynoblock >> stdout.log; grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1; rm massif.out)"
 			BENCHOUT="$(cat stdout.log)"
 			rm stdout.log
@@ -193,7 +193,7 @@ for runner in $($1 -l); do
     DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
     RESULTS+=(${DIFF})
 
-		if [ "${LAST}" = "memory" ]; then
+		if [ "${LAST}" -eq "memory" ]; then
 		  STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms (profiled time), Peak memory: ${MEMORY} bytes")
 		else
       STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms")
