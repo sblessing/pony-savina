@@ -211,7 +211,7 @@ for runner in $($1 -l); do
     $( 
       for (( i=0; i<${#RESULTS[@]}; i++ )); do
         echo ${RESULTS[i]}
-      done | sort 
+      done | sort -n
      ) 
   )
 

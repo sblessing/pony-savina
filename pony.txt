@@ -46,7 +46,11 @@
 	        Pony 0.26.0 vs. Akka 2.3.2 vs. Scala 2.11.0 on JVM 1.8.0-161 vs. CAF 0.16.3 (GCC 7.3.1)</p>
 						</div>
 						<div class="row">
+						  <h2>Speedup (Cores)</h2>
 							__PLOTS__
+							<h2>Speedup (Input)</h2>
+							<h2>Memory (Cores)</h2>
+							<h2>Memory (Input)</h2>
 						</div>
           </div>
         </div>
