@@ -1,6 +1,7 @@
 #!/bin/bash
 TEMPLATE=$(cat runner_template.txt)
 RUNTIME="Pony $(ponyc --version)"
+LAST=${@: -1}
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   DATE="gdate +%s.%N"
@@ -174,7 +175,15 @@ for runner in $($1 -l); do
 
   for i in `seq 1 $2`; do
     START=`${DATE}`
-    BENCHOUT="$($1 -b=${bench} --ponynoblock)"
+
+		if [ "${LAST}" = "memory" ]; then
+		  MEMORY="$(valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponynoblock >> stdout.log; grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1; rm massif.out)"
+			BENCHOUT="$(cat stdout.log)"
+			rm stdout.log
+		else
+      BENCHOUT="$($1 -b=${bench} --ponynoblock)"
+		fi
+
     END=`${DATE}`
 	  
     if [[ !  -z  $BENCHOUT  ]]; then
@@ -183,7 +192,12 @@ for runner in $($1 -l); do
 
     DIFF=`echo "$END - $START" | bc | awk -F"." '{print $1""substr($2,1,3)}' |  awk '{printf "%.3f", $0}'`
     RESULTS+=(${DIFF})
-    STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms")
+
+		if [ "${LAST}" = "memory" ]; then
+		  STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms (profiled time), Peak memory: ${MEMORY} bytes")
+		else
+      STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms")
+		fi
   done
 
   SORTED_RESULTS=( 
