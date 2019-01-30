@@ -184,9 +184,11 @@ for runner in $($1 -l); do
     START=`${DATE}`
 
     if [ "$MODE" = "memory" ]; then
-      MEMORY="$(valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponynoblock >> stdout.log; grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1; rm massif.out)"
+      valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponynoblock >> stdout.log
+			MEMORY=$(grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1)
       BENCHOUT="$(cat stdout.log)"
       rm stdout.log
+			rm massif.out
     else
       BENCHOUT="$($1 -b=${bench} --ponynoblock)"
     fi
