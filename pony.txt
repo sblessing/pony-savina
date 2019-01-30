@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    
+    <title>Pony - Sebastian Blessing, Engineer &amp; Programming Language Enthusiast</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/blog.css" rel="stylesheet">
+    <link href="css/cover.css" rel="stylesheet">
+    <link href="css/pony.css" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <!--<div class="site-wrapper">
+      <div class="site-wrapper-inner"> -->
+        <div class="cover-container">
+          <div class="masthead clearfix">
+            <div class="inner">
+              <a href="http://www.doc.ic.ac.uk"><h3 class="masthead-brand">Imperial College</h3></a>
+              <ul class="nav masthead-nav">
+                <li><a href="http://www.doc.ic.ac.uk/~scb12">Home</a></li>
+                <li><a href="publications.html">Publications &amp; Talks</a></li>
+                <li class="active"><a href="pony.html">Pony</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container main">
+          <div class="inner cover">
+            <div class="row">
+              <h2>Savina Benchmark Suite</h2>
+              <p>The Savina benchmark suite is a widely accepted collection
+                of benchmark programs that has been developed
+                specifically for actor-oriented programs and languages <a href="https://dl.acm.org/citation.cfm?id=2687368">[Source]</a>.
+                The goal was to provide a suite that is “diverse, realistic
+                and represents compute (rather than I/O) intense applications”
+                <a href="https://dl.acm.org/citation.cfm?id=2687368">[Source]</a>. 
+                Here available are the results of the individual Savina programs, executed on 2x Intel(R) Xeon(R) CPU E5-2690 v3 2.6 GHz (2 sockets, 24-core +HT) with 256 GB RAM.
+	        Pony 0.26.0 vs. Akka 2.3.2 vs. Scala 2.11.0 on JVM 1.8.0-161 vs. CAF 0.16.3 (GCC 7.3.1)</p>
+						</div>
+						<div class="row">
+							__PLOTS__
+						</div>
+          </div>
+        </div>
+ 
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/docs.min.js"></script>
+    <script>
+      !function(d,s,id){
+        var js,fjs=d.getElementsByTagName(s)[0],
+                 p=/^http:/.test(d.location)?'http':'https';
+                 if(!d.getElementById(id)){
+                  js=d.createElement(s);
+                  js.id=id;
+                  js.src=p+'://platform.twitter.com/widgets.js';
+                  fjs.parentNode.insertBefore(js,fjs);
+                }
+      }(document, 'script', 'twitter-wjs');
+    </script>
+  </body>
+</html>

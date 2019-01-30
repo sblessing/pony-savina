@@ -158,15 +158,15 @@
 		"30": "Successive Over-Relaxation"
 	},
 	"colors": {
-	  "Akka": "#00FF00",
-	  "CAF": "#000000",
-	  "Pony": "#FF0000",
-	  "Scala": "#A020F0"
+	  "Akka": "#FF0000",
+	  "CAF": "#0000FF",
+	  "Pony": "#00FF00",
+	  "Scala": "#551A8B"
 	},
 	"versions": {
 		"Akka": "2.3.2",
 		"CAF": "0.16.3",
-		"Pony": "0.25.0",
+		"Pony": "0.26.0",
 		"Scala": "2.11.0"
 	}
 }

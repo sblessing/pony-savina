@@ -1,6 +1,21 @@
 #!/bin/bash
 CREATED=()
+HTML=()
 LAST=${@: -1}
+
+read -r -d '' THUMBNAIL << EOM
+  <a href="https://www.doc.ic.ac.uk/~scb12/benchmarks/__PLOT__.pdf" class="thumbnail">
+    <img src="https://www.doc.ic.ac.uk/~scb12/benchmarks/__THUMB__.png" class="img-thumbnail">
+  </a>
+EOM
+
+read -r -d '' ROW << EOM 
+  <div class="col-md-4">
+    __THUMBNAIL__0
+		__THUMBNAIL__1
+		__THUMBNAIL__2
+  </div>
+EOM
 
 function cleanup {
   FILES=("$@")
@@ -34,6 +49,7 @@ function produce_plot {
     BENCH=$(echo ${plot} | cut -d ":" -f 2 | cut -d "_" -f 2)
     SCRIPT=${NAME}.gnuplot
 	  TARGET=""
+		ISCOMBINED=false
 
     tech ${NAME}
 
@@ -42,6 +58,7 @@ function produce_plot {
 
 	  if (($length > 1)); then
 	    TARGET="Combined"
+			ISCOMBINED=true
 	  else
 	    TARGET=${TECH}
 	  fi
@@ -57,18 +74,28 @@ function produce_plot {
     eval "touch output/${TARGET}/${SCRIPT}"
 
     OUT="output/${TARGET}/${SCRIPT}"
+		OUTPUT=${TITLE// /_}
+		OUTPUT=${OUTPUT//\(/}
+		OUTPUT=${OUTPUT//\)/}
+
+    if [ "$ISCOMBINED" = true ]; then
+		  if [[ ! "${HTML[@]}" =~ "${OUTPUT}" ]]; then
+		    HTML+=(${OUTPUT})
+			fi
+	  fi
   
     echo "set terminal ${LAST}" >> ${OUT}
-    echo "set output \"output/${TARGET}/${TITLE//_/ }.${LAST}\"" >> ${OUT}
+    echo "set output \"output/${TARGET}/${OUTPUT}.${LAST}\"" >> ${OUT}
     echo "set xlabel 'Cores'" >> ${OUT}
     echo "set ylabel 'Execution Time (Milliseconds, Median)'" >> ${OUT}
     #echo "set logscale y" >> ${OUT}
 		echo "set xtics 2" >> ${OUT}
     echo "set datafile separator \",\"" >> ${OUT}
     echo "set title \"${TITLE}\"" >> ${OUT}
+    echo "set key outside" >> ${OUT}
 
     if (($length > 1)); then
-      echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\",\\" >> ${OUT}
+      echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2,\\" >> ${OUT}
 
 		  for next in "${PARAM[@]:1}"; do
 		    OTHERNAME=$(echo ${next} | cut -d ":" -f 1)
@@ -78,7 +105,7 @@ function produce_plot {
 				VERSION=$(cat plot_config.json | jq -r ".\"versions\"" | jq -r ".\"${TECH}\"")
 
 		    eval "cat plot_${OTHERNAME}.txt | sort -t, -k1 -n > gnuplot_${OTHERNAME}.txt"
-		    echo "'gnuplot_${OTHERNAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\",\\" >> ${OUT}
+		    echo "'gnuplot_${OTHERNAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2,\\" >> ${OUT}
 
         #We might have already plotted this in a non-combined run.
         if [[ ! "${CREATED[@]}" =~ "gnuplot_${OTHERNAME}.txt" ]]; then
@@ -86,7 +113,7 @@ function produce_plot {
 		    fi
 		  done
 	  else
-	    echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\"" >> ${OUT}
+	    echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2" >> ${OUT}
 	  fi
 
     eval "gnuplot ${OUT}"
@@ -97,6 +124,30 @@ function produce_plot {
 
 	  break
 	done
+}
+
+function produce_html {
+	TEMPLATE=$(cat pony.txt)
+	COUNT=0
+	CURRENT=${ROW}
+	HTML_OUT=()
+
+	for generated in ${HTML[@]}; do
+		if [ $COUNT -eq 3 ]; then
+		  HTML_OUT+=(${CURRENT})
+		  CURRENT=${ROW}
+			COUNT=0
+		fi
+
+    THUMB=${THUMBNAIL/"__PLOT__"/$generated}
+		THUMB=${THUMB/"__THUMB__"/$generated}
+		CURRENT=${CURRENT/"__THUMBNAIL__${COUNT}"/$THUMB}
+		COUNT=$((COUNT+1))
+	done
+
+	##DOM=$(join "\n" ${HTML_OUT[@]})
+	TEMPLATE=${TEMPLATE/__PLOTS__/${HTML_OUT[@]}}
+	echo ${TEMPLATE} >> "pony.html"
 }
 
 ARGS=("$@")
@@ -161,4 +212,5 @@ if [ "$combined" = true ]; then
   done
 fi
 
+produce_html
 cleanup ${CREATED[@]}
