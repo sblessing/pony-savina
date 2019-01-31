@@ -180,6 +180,7 @@ fi
 
 for runner in $($1 -l); do
   RESULTS=()
+	MEMORY_RESULTS=()
   STDOUT=()
   bench=$(echo ${runner} | cut -d "," -f1)
 
@@ -209,7 +210,12 @@ for runner in $($1 -l); do
     RESULTS+=(${DIFF})
 
     if [[ "$MODE" =~ ^memory.* ]]; then
-      STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms (profiled time), Peak memory: ${MEMORY} bytes")
+		  if [ "$MODE" = "memory-valgrind" ]; then
+			  MEMORY=$(expr $MEMORY / 1024)
+			fi
+     
+		  MEMORY_RESULTS+=(${MEMORY})
+      STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms (profiled time), Peak memory: ${MEMORY} kb")
     else
       STDOUT+=("${bench}          Iteration-$i:  ${DIFF} ms")
     fi
@@ -258,6 +264,13 @@ for runner in $($1 -l); do
   OUTFILE=${OUTFILE//__PERCENT__/${ERROR_WINDOW_PERCENT}}
   OUTFILE=${OUTFILE//__VARIANCE__/${VARIATION_RESULT}}
   OUTFILE=${OUTFILE//__SKEWNESS__/${SKEWNESS_RESULT}}
+
+	if [[ "$MODE" =~ ^memory.* ]]; then
+	  arithmetic_mean ${MEMORY_RESULTS[@]}
+	  OUTFILE=${OUTFILE//__MEMORY__/${ARITHMETIC_MEAN_RESULT}}
+  else
+	  OUTFILE=${OUTFILE//"__MEMORY__ kb"/"not measured"}
+	fi
 
   echo "${OUTFILE}" >> ${3}/${bench}.txt
 done

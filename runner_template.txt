@@ -19,4 +19,5 @@ __BENCHMARK__    Higher Confidence:   __CONFIDENCE_HIGH__ ms
 __BENCHMARK__         Error Window:   __ERROR_WINDOW__ ms (__PERCENT__ percent) 
 __BENCHMARK__  Coeff. of Variation:   __VARIANCE__ 
 __BENCHMARK__             Skewness:   __SKEWNESS__ 
+__BENCHMARK__     Avg. peak memory:   __MEMORY__ kb
 
