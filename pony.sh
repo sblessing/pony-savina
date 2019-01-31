@@ -229,6 +229,14 @@ for runner in $($1 -l); do
      ) 
   )
 
+	SORTED_MEMORY_RESULTS=( 
+    $( 
+      for (( i=0; i<${#MEMORY_RESULTS[@]}; i++ )); do
+        echo ${MEMORY_RESULTS[i]}
+      done | sort -n
+     ) 
+  )
+
   best ${SORTED_RESULTS[@]}
   worst ${SORTED_RESULTS[@]}
   median ${SORTED_RESULTS[@]}
@@ -266,7 +274,7 @@ for runner in $($1 -l); do
   OUTFILE=${OUTFILE//__SKEWNESS__/${SKEWNESS_RESULT}}
 
 	if [[ "$MODE" =~ ^memory.* ]]; then
-	  arithmetic_mean ${MEMORY_RESULTS[@]}
+	  arithmetic_mean ${SORTED_MEMORY_RESULTS[@]}
 	  OUTFILE=${OUTFILE//__MEMORY__/${ARITHMETIC_MEAN_RESULT}}
   else
 	  OUTFILE=${OUTFILE//"__MEMORY__ kb"/"not measured"}
