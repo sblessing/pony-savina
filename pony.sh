@@ -192,7 +192,8 @@ for runner in $($1 -l); do
       BENCHOUT="$(cat stdout.log)"
       rm stdout.log
 		elif [ "$MODE" = "memory-time" ]; then
-		  MEMORY="$(/usr/bin/time -o profile.log --format='%M' $1 -b=${bench} --ponynoblock >> stdout.log)"
+		  $(/usr/bin/time -o profile.log --format='%M' $1 -b=${bench} --ponynoblock >> stdout.log)
+			MEMORY="$(cat profile.log)"
 			BENCHOUT="$(cat stdout.log)"
 			rm profile.log
 			rm stdout.log
