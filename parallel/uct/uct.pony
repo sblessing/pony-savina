@@ -196,13 +196,6 @@ actor Root
       _traverse()
     end
 
-  be print_info() =>
-    _env.out.print("0 0 children starts 1")
-
-    for i in Range[USize](0, _binomial.usize()) do
-      try _children(i)?.print_info() end
-    end
-
 actor Node
   let _env: Env
   let _root: Root
@@ -243,17 +236,6 @@ actor Node
 
   be grant(id: U64) =>
     try _has_grant_children(id.usize())? = true end
-
-  be print_info() =>
-    if _has_children = true then
-      _env.out.print(_id.string() + " " + _computation_size.string() + " children starts")
-
-      for i in Range[USize](0, _binomial.usize()) do
-        try _children(i)?.print_info() end
-      end
-    else
-      _env.out.print(_id.string() + " " + _computation_size.string())
-    end
  
   be traverse() =>
     BusyWaiter(_computation_size, 40000)
