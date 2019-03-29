@@ -180,7 +180,7 @@ actor Root
     
         _size = _size + _binomial
 
-        if (child_height + 1) = _height then
+        if (child_height + 1) == _height then
           _height = child_height + 1
         end
       elseif child_height > _height then
