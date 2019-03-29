@@ -80,7 +80,7 @@ class CongruentialRand is Random
         v1 = (2 * nextDouble()) - 1
         v2 = (2 * nextDouble()) - 1
         s = (v1 * v1) + (v2 * v2)
-      until ((s >= 1) or (s == 0)) end
+      until ((s < 1) and (s != 0)) end
 
       let multiplier = F64(-2 * (s.log()/s)).sqrt()
       _next_gaussian = v2 * multiplier
