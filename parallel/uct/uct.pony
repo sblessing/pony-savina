@@ -50,7 +50,7 @@ class CongruentialRand is Random
     _x = ((_x * U64(0x5DEECE77D)) + U64(0xB)) and ((U64(1) << 48) - 1)
 
   fun ref nextBoolean(): Bool =>
-    (next() >> (U64(48 - 1))) != 0
+    (next() >> (U64(48 - 1))) != U64(0)
 
   fun ref nextDouble(): F64 =>
     let a: U64 = next() >> U64(48 - 26)
