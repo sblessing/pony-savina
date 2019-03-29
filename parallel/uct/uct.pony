@@ -56,7 +56,7 @@ class CongruentialRand is Random
     let a: U64 = next() >> U64(48 - 26)
     let b: U64 = next() >> U64(48 - 27)
 
-    (((a << 27) + b) / U64(1 << 53)).f64()
+    (((a << 27).f64() + b.f64()) / U64(1 << 53).f64()).f64()
 
   fun ref nextGaussian(): F64 =>
     """
