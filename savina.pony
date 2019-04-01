@@ -31,7 +31,7 @@ use "micro/threadring"
 use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
-//use "parallel/uct"
+use "parallel/uct"
 
 interface Configurable
   fun val apply(): CommandSpec iso^ ?
@@ -100,7 +100,7 @@ actor Main
         env.out.print("Sieve")
         //env.out.print("Sor")
         env.out.print("Trapezoid")
-        //env.out.print("Uct")
+        env.out.print("Uct")
       else
         match command.option("benchmark").string()
         //| "Banking" => Banking.run(parse(BankingConfig() ?, env) ?, env)
@@ -132,7 +132,7 @@ actor Main
         | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
         | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
-        //| "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
+        | "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
         else
           error
         end
