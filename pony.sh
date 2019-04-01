@@ -198,7 +198,7 @@ for runner in $($1 -l); do
 			rm profile.log
 			rm stdout.log
     else
-      BENCHOUT="$($1 -b=${bench} --ponynoblock)"
+      BENCHOUT="$($1 -b=${bench} --ponynoblock --ponythreads $(getconf _NPROCESSORS_ONLN))"
     fi
 
     END=`${DATE}`
