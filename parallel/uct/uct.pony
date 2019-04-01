@@ -48,7 +48,7 @@ class CongruentialRand is Random
     Section 3.2.1
     """
     _x = ((_x * U64(0x5DEECE77D)) + U64(0xB)) and ((U64(1) << 48) - 1)
-    _x >>> U64(48 - bits)
+    _x >> U64(48 - bits)
 
   fun ref nextBoolean(): Bool =>
     (next(1) >> (U64(48 - 1))) != U64(0)
