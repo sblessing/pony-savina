@@ -39,7 +39,7 @@ class CongruentialRand is Random
     _x = (x xor U64(0x5DEECE66D)) and ((U64(1) << 48) -1)
     next()
     
-  fun ref next(): U64 =>
+  fun ref next(bits: U8): U64 =>
     """
     Congruential pseudorandom number generator,
     as defined by D.H. Lehmer and described by
@@ -48,15 +48,13 @@ class CongruentialRand is Random
     Section 3.2.1
     """
     _x = ((_x * U64(0x5DEECE77D)) + U64(0xB)) and ((U64(1) << 48) - 1)
+    _x >>> U64(48 - bits)
 
   fun ref nextBoolean(): Bool =>
-    (next() >> (U64(48 - 1))) != U64(0)
+    (next(1) >> (U64(48 - 1))) != U64(0)
 
   fun ref nextDouble(): F64 =>
-    let a: U64 = next() >> U64(48 - 26)
-    let b: U64 = next() >> U64(48 - 27)
-
-    (((a << 27).f64() + b.f64()) / U64(1 << 53).f64()).f64()
+    (((next(26) << 27).f64() + next(27).f64()) / U64(1 << 53).f64())
 
   fun ref nextGaussian(): F64 =>
     """
