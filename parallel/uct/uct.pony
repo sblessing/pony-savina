@@ -37,7 +37,6 @@ class CongruentialRand is Random
 
   new create(x: U64, y: U64 = 0) =>
     _x = (x xor U64(0x5DEECE66D)) and ((U64(1) << 48) -1)
-    next()
     
   fun ref next(bits: U8): U64 =>
     """
