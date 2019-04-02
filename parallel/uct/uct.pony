@@ -27,6 +27,11 @@ primitive UctConfig
           "Binomial parameter. Each node may have either 0 or binomial children. Defaults to 10."
           where short' = 'i', default' = 10
         )
+        OptionSpec.u64(
+          "urgent",
+          "The percentage of urgend nodes. Defaults to 50."
+          where short' = 'p', default' = 50
+        )
       ]) ?
     end
 
@@ -106,6 +111,7 @@ actor Uct
       args.option("binomial").u64(),
       args.option("avg").u64(),
       args.option("stddev").u64()
+      args.option("urgent").u64()
     )
     
 actor Root
@@ -114,6 +120,7 @@ actor Root
   let _binomial: U64
   let _avg: U64
   let _stddev: U64
+  let _urgent: U64
 
   var _random: CongruentialRand
   var _height: U64
@@ -123,12 +130,13 @@ actor Root
   var _final: Bool
   var _traversed: Bool
 
-  new generate(env: Env, max_nodes: U64, binomial: U64, avg: U64, stddev: U64) =>
+  new generate(env: Env, max_nodes: U64, binomial: U64, avg: U64, stddev: U64, urgent: U64) =>
     _env = env
     _max_nodes = max_nodes
     _binomial = binomial
     _avg = avg
     _stddev = stddev
+    _urgent = urgent
     _random = CongruentialRand(2)
     _height = 1
     _size = 1
@@ -175,7 +183,15 @@ actor Root
   be check_request(sender: Node, child_height: U64) =>
     if((_size + _binomial) <= _max_nodes) then
       if _random.nextBoolean() == true then
-        sender.generate(_size, _get_next_normal()) 
+        let percentage = Rand(Time.now()._2.u64()).int(100)
+        let computation = _get_next_normal()
+
+        if percentage < _urgent then
+          sender.generate(_size, computation) 
+        else
+          let child = Rand(Time.now()._2.u64()).int(_binomial)
+          sender.generate(_size, computation, true, child)
+        end
     
         _size = _size + _binomial
 
@@ -208,7 +224,7 @@ actor Node
   var _has_grant_children: Array[Bool]
   var _children: Array[Node]
 
-  new create(env: Env, root: Root, parent: (Node | Root), id: U64, binomial: U64, height: U64, computation_size: U64) =>
+  new create(env: Env, root: Root, parent: (Node | Root), id: U64, binomial: U64, height: U64, computation_size: U64, urgent: Bool = false) =>
     _env = env
     _root = root
     _parent = parent
@@ -224,11 +240,11 @@ actor Node
     BusyWaiter(100, 40000)
     _root.check_request(this, _height)
 
-  be generate(id: U64, computation_size: U64) =>
+  be generate(id: U64, computation_size: U64, urgent: Bool = false, urgent_child_id: U64 = 0) =>
     _parent.grant(_id % _binomial)
 
     for i in Range[U64](0, _binomial) do
-      _children.push(Node(_env, _root, this, id + i, _binomial, _height + 1, computation_size)) 
+      _children.push(Node(_env, _root, this, id + i, _binomial, _height + 1, computation_size, (urgent and (i == urgent_child_id))) 
     end
 
     _has_children = true
