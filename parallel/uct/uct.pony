@@ -244,7 +244,7 @@ actor Node
     _parent.grant(_id % _binomial)
 
     for i in Range[U64](0, _binomial) do
-      _children.push(Node(_env, _root, this, id + i, _binomial, _height + 1, computation_size, (urgent and (i == urgent_child_id))) 
+      _children.push(Node(_env, _root, this, id + i, _binomial, _height + 1, computation_size, (urgent and (i == urgent_child_id)))) 
     end
 
     _has_children = true
