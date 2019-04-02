@@ -110,7 +110,7 @@ actor Uct
       args.option("nodes").u64(),
       args.option("binomial").u64(),
       args.option("avg").u64(),
-      args.option("stddev").u64()
+      args.option("stddev").u64(),
       args.option("urgent").u64()
     )
     
