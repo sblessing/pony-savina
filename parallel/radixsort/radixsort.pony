@@ -24,7 +24,7 @@ primitive RadixsortConfig
       ]) ?
     end
 
-type Neighbor is (Validation | Sort)
+type Neighbor is (Validation | Sorter)
 
 actor Radixsort
   new run(args: Command val, env: Env) =>
@@ -33,10 +33,10 @@ actor Radixsort
     let seed = args.option("seed").u64()
 
     var radix = max / 2
-    var next: Neighbor = Validation(size)
+    var next: Neighbor = Validation(size, env)
 
     while radix > 0 do
-      next = Sort(size, radix, next)
+      next = Sorter(size, radix, next)
       radix = radix / 2
     end
 
@@ -44,13 +44,15 @@ actor Radixsort
 
 actor Validation
   let _size: U64
+  let _env: Env
   var _sum: F64
   var _received: U64
   var _previous: U64
   var _error: (I64, I32)
 
-  new create(size: U64) =>
+  new create(size: U64, env: Env) =>
     _size = size
+    _env = env
     _sum = 0
     _received = 0
     _previous = 0
@@ -58,7 +60,7 @@ actor Validation
 
   be value(n: U64) =>
     _received = _received + 1
-    if n < _previous and _error._1 < 0 then
+    if (n < _previous) and (_error._1 < 0) then
       _error = (n.i64(), (_received - 1).i64())
     end
 
@@ -78,9 +80,10 @@ actor Source
     end
 
 
-actor Sort
+actor Sorter
   let _next: Neighbor
   let _size: U64
+  let _radix: U64
   var _data: Array[U64]
   var _received: U64
   var _current: U64
@@ -88,12 +91,13 @@ actor Sort
   new create(size: U64, radix: U64, next: Neighbor) =>
     _next = next
     _size = size
+    _radix = radix
     _data = Array[U64](size.usize())
     _received = 0
     _current = 0
 
   be value(n: U64) =>
-    _received = received + 1
+    _received = _received + 1
 
     if (n and _radix) == 0 then
       _next.value(n)
