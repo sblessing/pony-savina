@@ -186,7 +186,7 @@ actor Root
         let percentage = Rand(Time.now()._2.u64()).int(100)
         let computation = _get_next_normal()
 
-        if percentage < _urgent then
+        if percentage <= _urgent then
           sender.generate(_size, computation) 
         else
           let child = Rand(Time.now()._2.u64()).int(_binomial)

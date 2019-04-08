@@ -26,7 +26,7 @@ use "micro/threadring"
 //use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
 //use "parallel/quicksort"
-//use "parallel/radixsort"
+use "parallel/radixsort"
 //use recmatsmul = "parallel/recmatmul"
 use "parallel/sieve"
 //use "parallel/sor"
@@ -95,7 +95,7 @@ actor Main
         //env.out.print("Nqueenk")
         //env.out.print("Piprecision")
         //env.out.print("Quicksort")
-        //env.out.print("Radixsort")
+        env.out.print("Radixsort")
         //env.out.print("Recmatmul")
         env.out.print("Sieve")
         //env.out.print("Sor")
@@ -127,7 +127,7 @@ actor Main
         //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
         //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
         //| "Quicksort" => Quicksort.run(parse(QuicksortConfig() ?, env) ?, env)
-        //| "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
+        | "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
         //| "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
         | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
