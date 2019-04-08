@@ -35,7 +35,7 @@ actor Radixsort
     var radix = max / 2
     var next: Neighbor = Validation(size)
 
-    while radix > 0:
+    while radix > 0 do
       next = Sort(size, radix, next)
       radix = radix / 2
     end
@@ -70,7 +70,7 @@ actor Validation
     end
 
 actor Source
-  new create(size; U64, max: U64, seed: U64, next: Neighbor) =>
+  new create(size: U64, max: U64, seed: U64, next: Neighbor) =>
     let random = Rand(seed)
 
     for i in Range[U64](0, size) do
