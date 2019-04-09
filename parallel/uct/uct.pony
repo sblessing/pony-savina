@@ -2,7 +2,7 @@ use "cli"
 use "random"
 use "collections"
 use "time"
-use "../util"
+use "../../util"
 
 primitive UctConfig
   fun val apply(): CommandSpec iso^ ? =>

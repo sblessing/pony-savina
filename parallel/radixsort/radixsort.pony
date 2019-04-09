@@ -1,6 +1,6 @@
 use "cli"
 use "collections"
-use "../util"
+use "../../util"
 
 primitive RadixsortConfig
   fun val apply(): CommandSpec iso^ ? =>
