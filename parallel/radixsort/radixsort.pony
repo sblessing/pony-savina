@@ -61,7 +61,7 @@ actor Validation
   be value(n: U64) =>
     _received = _received + 1
     if (n < _previous) and (_error._1 < 0) then
-      _error = (n.i64(), (_received - 1).i64())
+      _error = (n.i64(), (_received - 1).i32())
     end
 
     _previous = n
@@ -78,7 +78,6 @@ actor Source
     for i in Range[U64](0, size) do
       next.value(random.next().abs() % max)
     end
-
 
 actor Sorter
   let _next: Neighbor
@@ -102,12 +101,12 @@ actor Sorter
     if (n and _radix) == 0 then
       _next.value(n)
     else
-      try _data(_current)? = n end
+      try _data(_current.usize())? = n end
       _current = _current + 1
     end
 
     if _received == _size then
-      for i in Range[U64](0, _current) do
+      for i in Range[USize](0, _current.usize()) do
         try _next.value(_data(i)?) end
       end
     end
