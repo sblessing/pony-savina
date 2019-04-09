@@ -91,7 +91,7 @@ actor Sorter
     _next = next
     _size = size
     _radix = radix
-    _data = Array[U64](size.usize())
+    _data = Array[U64].init(U64(0), size.usize())
     _received = 0
     _current = 0
 
