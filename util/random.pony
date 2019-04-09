@@ -1,5 +1,21 @@
 use "random"
 
+class SimpleRand is Random
+  var _value: U64
+
+  new create(x: U64) =>
+    _value = x
+
+  fun ref nextLong: U64 =>
+    _value = ((value * 1309) + 13849) and 65535
+    _value
+  
+  fun ref nextInt(): U32 =>
+    nextLong().u32()
+  
+  fun ref nextDouble(): F64 =>
+    1.0 / (nextLong() + 1).f64()
+
 class CongruentialRand is Random
   var _x: U64
   var _next_gaussian: F64 = 0

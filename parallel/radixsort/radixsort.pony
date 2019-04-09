@@ -73,7 +73,7 @@ actor Validation
 
 actor Source
   new create(size: U64, max: U64, seed: U64, next: Neighbor) =>
-    let random = CongruentialRand(seed)
+    let random = SimpleRand(seed)
 
     for i in Range[U64](0, size) do
       next.value(random.nextLong().abs() % max)
