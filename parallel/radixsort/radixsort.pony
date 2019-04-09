@@ -1,6 +1,6 @@
 use "cli"
 use "collections"
-use "random"
+use "../util"
 
 primitive RadixsortConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -73,10 +73,10 @@ actor Validation
 
 actor Source
   new create(size: U64, max: U64, seed: U64, next: Neighbor) =>
-    let random = Rand(seed)
+    let random = CongruentialRand(seed)
 
     for i in Range[U64](0, size) do
-      next.value(random.next().abs() % max)
+      next.value(random.nextLong().abs() % max)
     end
 
 actor Sorter
