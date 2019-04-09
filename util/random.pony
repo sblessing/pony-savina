@@ -26,7 +26,7 @@ class CongruentialRand is Random
     (((next_mask(26) << 27).f64() + next_mask(27).f64()) / U64(1 << 53).f64())
 
   fun ref nextLong(): U64 =>
-    (next_mask(32) << 32) + next_mask(32);
+    (next_mask(32) << 32) + next_mask(32)
 
   fun ref nextGaussian(): F64 =>
     """
