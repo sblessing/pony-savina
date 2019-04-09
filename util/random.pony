@@ -1,3 +1,5 @@
+use "random"
+
 class CongruentialRand is Random
   var _x: U64
   var _next_gaussian: F64 = 0
