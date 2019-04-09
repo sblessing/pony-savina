@@ -3,11 +3,14 @@ use "random"
 class SimpleRand is Random
   var _value: U64
 
-  new create(x: U64) =>
+  new create(x: U64, y: U64 = 0) =>
     _value = x
 
-  fun ref nextLong: U64 =>
-    _value = ((value * 1309) + 13849) and 65535
+  fun ref next(): U64 =>
+    nextLong()
+
+  fun ref nextLong(): U64 =>
+    _value = ((_value * 1309) + 13849) and 65535
     _value
   
   fun ref nextInt(): U32 =>
