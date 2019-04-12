@@ -28,40 +28,6 @@ primitive RecmatmulConfig
       ]) ?
     end
 
-class val WorkCommand
-  let _priority: U64
-  let srA: U64
-  let scA: U64
-  let srB: U64
-  let scB: U64
-  let srC: U64
-  let scC: U64
-  let _blocks: U64
-  let _dimension: U64
-
-  new create(priority: U64, srA': U64, scA': U64, srB': U64, scB': U64, srC': U64, scC': U64, blocks: U64, dimension: U64) =>
-    _priority = priority
-    srA = srA'
-    scA = scA'
-    srB = srB'
-    scB = scB'
-    srC = srC'
-    scC = scC'
-    _blocks = blocks
-    _dimension = dimension
-
-  fun val getPriority(): U64 =>
-    _priority
-
-  fun val getBlocks(): U64 =>
-    _blocks
-
-  fun val getDimension(): U64 =>
-    _dimension
-
-  fun val getIndex(workers: USize): USize =>
-    (srC + scC).usize() % workers
-
 actor Recmatmul
   new run(args: Command val, env: Env) =>
     let workers = args.option("workers").u64()
@@ -111,14 +77,13 @@ actor Master
       _workers.push(Worker(this, _matrix_a, _matrix_b, threshold))
     end
 
-    _send_work(recover WorkCommand(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length) end)
+    _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
 
-  fun ref _send_work(command: WorkCommand val) =>
-    let index = command.getIndex(_workers.size())
-    try _workers(index)?.work(command) end
+  fun ref _send_work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
+    try _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) end
 
-  be work(command: WorkCommand val) =>
-    _send_work(command)
+  be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
+    _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
 
   be report(result: Array[Array[U64] val] val, srC: U64, scC: U64, dimension: U64) =>
     var i = srC.usize()
@@ -145,53 +110,20 @@ actor Worker
     _matrix_b = b
     _threshold = threshold
   
-  be work(command: WorkCommand val) =>
-    let priority = command.getPriority()
-    let length = command.getBlocks()
-    let dimension = command.getDimension()
-    let srA = command.srA
-    let scA = command.scA
-    let srB = command.srB
-    let scB = command.scB
-    let srC = command.srC
-    let scC = command.scC
-    
+  be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     if length > _threshold then
       let new_priority = priority + 1
       let new_dimension = dimension / 2
       let new_length = length / 4
 
-      _master.work(
-        recover WorkCommand(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension) end
-      )
-
-      _master.work(
-        recover WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension) end
-      )
+      _master.work(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension)
+      _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension)
+      _master.work(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
 
     else
       let blocks = dimension.usize()
