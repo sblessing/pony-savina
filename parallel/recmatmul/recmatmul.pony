@@ -175,29 +175,36 @@ actor Worker
       _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
     else
       let blocks = dimension.usize()
-      var i: USize = 0
+      var i: USize = srC.usize()
+      var m: USize = 0
+      var n: USize = 0
+      let endR = i + blocks
+      let endC = scC.usize() + blocks 
       
       _master.report(
         recover
           var matrix_c = Array[Array[U64]].init(Array[U64].init(0, blocks), blocks)
 
-          while i < blocks do
-            var j: USize = 0
+          while i < endR do
+            var j: USize = scC.usize()
+            n = 0
 
-            while j < blocks do
+            while j < endC do
               var k: USize = 0
 
               while k < blocks do
                 try 
-                  matrix_c(i)?(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
+                  matrix_c(m)?(n)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
                 end 
                 k = k + 1
               end
             
               j = j + 1
+              n = n + 1
             end
 
             i = i + 1
+            m = m + 1
           end
 
           consume matrix_c
