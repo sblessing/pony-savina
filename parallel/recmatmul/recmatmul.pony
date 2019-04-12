@@ -101,12 +101,12 @@ actor Master
 
   be report(result: Array[Array[U64] ref] val, srC: U64, scC: U64, dimension: U64) =>
     var i = srC.usize()
-    var j = scC.usize()
     var k = USize(0)
-    var l = USize(0)
     let dim = dimension.usize()
 
     while i < dim do
+      var j = scC.usize()
+      var l = USize(0)
       while j < dim do
         try _matrix_c(i)?(j)? = result(k)?(l)? end
         j = j + 1
@@ -185,6 +185,7 @@ actor Worker
           var matrix_c = Array[Array[U64]].init(Array[U64].init(0, blocks), blocks)
 
           while i < blocks do
+            j = 0
             while j < blocks do
               var k: USize = 0
 
