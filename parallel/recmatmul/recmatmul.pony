@@ -124,7 +124,7 @@ actor Master
             let result = _matrix_c(i)?(j)?
             let excepted: U64 = 1 * _length * i * j
             
-            is_valid = (result == exepcted)
+            is_valid = (result == expected)
           else
             is_valid = false
             break
