@@ -122,9 +122,10 @@ actor Master
         for j in Range[USize](0, _length.usize()) do
           try
             let result = _matrix_c(i)?(j)?
-            let expected: U64 = 1 * _length * i.u64() * j.u64()
+            let expected: U64 = _length * i.u64() * j.u64()
             
             if result != expected then
+              _env.out.print(result.string() + " = " + expected.string())
               is_valid = false
               break
             end
