@@ -44,9 +44,14 @@ actor Master
   let _matrix_b: Array[Array[U64] val] val
   let _matrix_c: Array[Array[U64]]
 
+  var _sent: U64
+  var _received: U64
+
   new create(workers: U64, data_length: U64, threshold: U64) =>
     _workers = Array[Worker](workers.usize())
     _num_blocks = data_length * data_length
+    _sent = 0
+    _received = 0
 
     let a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
     let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
@@ -80,7 +85,12 @@ actor Master
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
 
   fun ref _send_work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
-    try _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) end
+    if _received < _sent then
+      try 
+        _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) 
+        _sent = _sent + 1
+      end
+    end
 
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
@@ -98,6 +108,9 @@ actor Master
       i = i + 1
     end
 
+  be done() =>
+    _received = _received + 1
+
 actor Worker
   let _master: Master
   let _matrix_a: Array[Array[U64] val] val
@@ -113,58 +126,56 @@ actor Worker
     _did_work = false
   
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
-    if not _did_work then
-      if length > _threshold then
-        let new_priority = priority + 1
-        let new_dimension = dimension / 2
-        let new_length = length / 4
+    if length > _threshold then
+      let new_priority = priority + 1
+      let new_dimension = dimension / 2
+      let new_length = length / 4
 
-        _master.work(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension)
-        _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension)
-        _master.work(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
-        _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
-        _master.work(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension)
-        _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
-        _master.work(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
-        _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension)
+      _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension)
+      _master.work(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+      _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
 
-      else
-        let blocks = dimension.usize()
-        var i: USize = 0
-        var j: USize = 0
+    else
+      let blocks = dimension.usize()
+      var i: USize = 0
+      var j: USize = 0
 
-        _master.report(
-          recover
-            var matrix_c = Array[Array[U64] val]
+      _master.report(
+        recover
+          var matrix_c = Array[Array[U64] val]
 
-            while i < blocks do
-              var inner = recover Array[U64].init(U64(0), blocks) end
+          while i < blocks do
+            var inner = recover Array[U64].init(U64(0), blocks) end
 
-              while j < blocks do
-                var k: USize = 0
+            while j < blocks do
+              var k: USize = 0
 
-                while k < blocks do
-                  try 
-                    inner(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
-                  end 
-                  k = k + 1
-                end
-            
-                j = j + 1
+              while k < blocks do
+                try 
+                  inner(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
+                end 
+                k = k + 1
               end
-
-              i = i + 1
-
-              matrix_c.push(consume inner)
+            
+              j = j + 1
             end
 
-            consume matrix_c
-          end,
-          srC,
-          scC,
-          dimension
-        )
-      end
+            i = i + 1
 
-      _did_work = true
+            matrix_c.push(consume inner)
+          end
+
+          consume matrix_c
+        end,
+        srC,
+        scC,
+        dimension
+      )
     end
+
+    _master.done()
