@@ -124,7 +124,7 @@ actor Master
     var k = USize(0)
     let dim = dimension.usize()
     let endR = i + dim
-    let endC = scC.usize() = dim
+    let endC = scC.usize() + dim
 
     while i < endR do
       var j = scC.usize()
