@@ -34,10 +34,12 @@ actor Recmatmul
     let data_length = args.option("length").u64()
     let threshold = args.option("threshold").u64()
     
-    Master(workers, data_length, threshold)
+    Master(env, workers, data_length, threshold)
 
 actor Master
+  let _env: Env
   let _workers: Array[Worker]
+  let _length: U64
   let _num_blocks: U64
 
   let _matrix_a: Array[Array[U64] val] val
@@ -47,8 +49,10 @@ actor Master
   var _sent: U64
   var _received: U64
 
-  new create(workers: U64, data_length: U64, threshold: U64) =>
+  new create(env: Env, workers: U64, data_length: U64, threshold: U64) =>
+    _env = env
     _workers = Array[Worker](workers.usize())
+    _length = data_length
     _num_blocks = data_length * data_length
     _sent = 0
     _received = 0
@@ -110,6 +114,30 @@ actor Master
 
   be done() =>
     _received = _received + 1
+
+    if _received == _sent then
+      var is_valid = true
+
+      for i in Range[U64](0, _length) do
+        for j in Range[U64](0, _length) do
+          try
+            let result = _matrix_c(i)?(j)?
+            let excepted: U64 = 1 * _length * i * j
+            
+            is_valid = (result == exepcted)
+          else
+            is_valid = false
+            break
+          end
+        end
+
+        if not is_valid then
+          break
+        end
+      end
+
+      _env.out.print("  Result valid = " + is_valid.string())
+    end
 
 actor Worker
   let _master: Master
