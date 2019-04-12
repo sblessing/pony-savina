@@ -99,7 +99,7 @@ actor Master
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
 
-  be report(result: Array[Array[U64] val] val, srC: U64, scC: U64, dimension: U64) =>
+  be report(result: Array[Array[U64] ref] val, srC: U64, scC: U64, dimension: U64) =>
     var i = srC.usize()
     var j = scC.usize()
     var k = USize(0)
@@ -108,7 +108,6 @@ actor Master
 
     while i < dim do
       while j < dim do
-        _env.out.print(i.string() + " " + j.string())
         try _matrix_c(i)?(j)? = result(k)?(l)? end
         j = j + 1
         l = l + 1
@@ -183,17 +182,15 @@ actor Worker
 
       _master.report(
         recover
-          var matrix_c = Array[Array[U64] val]
+          var matrix_c = Array[Array[U64]].init(Array[U64].init(0, blocks), blocks)
 
           while i < blocks do
-            var inner = recover Array[U64].init(U64(0), blocks) end
-
             while j < blocks do
               var k: USize = 0
 
               while k < blocks do
                 try 
-                  inner(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
+                  matrix_c(i)?(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
                 end 
                 k = k + 1
               end
@@ -202,8 +199,6 @@ actor Worker
             end
 
             i = i + 1
-
-            matrix_c.push(consume inner)
           end
 
           consume matrix_c
