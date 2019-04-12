@@ -102,8 +102,8 @@ actor Master
   be report(result: Array[Array[U64] val] val, srC: U64, scC: U64, dimension: U64) =>
     var i = srC.usize()
     var j = scC.usize()
-    var k = 0
-    var l = 0
+    var k = USize(0)
+    var l = USize(0)
     let dim = dimension.usize()
 
     while i < dim do
