@@ -106,7 +106,7 @@ actor Master
 
     while i < dim do
       while j < dim do
-        try _matrix_c(i)?(j)? = result((i - dim))?((j - dim))? end
+        try _matrix_c(i)?(j)? = result((i - dim))?((j - dim))? else _env.out.print("fail") end
         j = j + 1
       end
       i = i + 1
