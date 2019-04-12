@@ -118,13 +118,13 @@ actor Master
     if _received == _sent then
       var is_valid = true
 
-      for i in Range[U64](0, _length) do
-        for j in Range[U64](0, _length) do
+      for i in Range[USize](0, _length.usize()) do
+        for j in Range[USize](0, _length.usize()) do
           try
             let result = _matrix_c(i)?(j)?
-            let expected: U64 = 1 * _length * i * j
+            let expected: U64 = 1 * _length * i.u64() * j.u64()
             
-            is_valid = (result == expected)
+            is_valid = (result is expected)
           else
             is_valid = false
             break
