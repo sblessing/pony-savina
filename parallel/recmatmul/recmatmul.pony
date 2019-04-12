@@ -30,23 +30,23 @@ primitive RecmatmulConfig
 
 class val WorkCommand
   let _priority: U64
-  let _srA: U64
-  let _scA: U64
-  let _srB: U64
-  let _scB: U64
-  let _srC: U64
-  let _scC: U64
+  let srA: U64
+  let scA: U64
+  let srB: U64
+  let scB: U64
+  let srC: U64
+  let scC: U64
   let _blocks: U64
   let _dimension: U64
 
-  new create(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, blocks: U64, dimension: U64) =>
+  new create(priority: U64, srA': U64, scA': U64, srB': U64, scB': U64, srC': U64, scC': U64, blocks: U64, dimension: U64) =>
     _priority = priority
-    _srA = srA
-    _scA = scA
-    _srB = srB
-    _scB = scB
-    _srC = srC
-    _scC = scC
+    srA = srA'
+    scA = scA'
+    srB = srB'
+    scB = scB'
+    srC = srC'
+    scC = scC'
     _blocks = blocks
     _dimension = dimension
 
@@ -60,10 +60,7 @@ class val WorkCommand
     _dimension
 
   fun val getIndex(workers: USize): USize =>
-    (_srC + _scC).usize() % workers
-
-  fun val multiply() =>
-    None
+    (srC + scC).usize() % workers
 
 actor Recmatmul
   new run(args: Command val, env: Env) =>
@@ -89,6 +86,8 @@ actor Master
     let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
       
     // Initialize the matrix
+    // This should actually happen outside
+    // the benchmark iteration.
     try
       for i in Range[USize](0, data_length.usize()) do
         let aI = recover Array[U64].init(U64(0), data_length.usize()) end
@@ -109,7 +108,7 @@ actor Master
     _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
-      _workers.push(Worker(this, threshold))
+      _workers.push(Worker(this, _matrix_a, matrix_b, threshold))
     end
 
     _send_work(recover WorkCommand(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length) end)
@@ -121,28 +120,92 @@ actor Master
   be work(command: WorkCommand val) =>
     _send_work(command)
 
+  be report(result: Array[Array[U64] val] val) =>
+    None
+
 actor Worker
   let _master: Master
+  let _matrix_a: Array[Array[U64] val] val
+  let _matrix_b: Array[Array[U64] val] val
   let _threshold: U64
 
-  new create(master: Master, threshold: U64) =>
+  new create(master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
     _master = master
+    _matrix_a = a
+    _matrix_b = b
     _threshold = threshold
   
   be work(command: WorkCommand val) =>
     let priority = command.getPriority()
     let length = command.getBlocks()
     let dimension = command.getDimension()
+    let srA = command.srA
+    let scA = command.scA
+    let srB = command.srB
+    let scB = command.scB
+    let srC = command.srC
+    let scC = command.scC
     
-    if dimension > _threshold then
+    if length > _threshold then
       let new_priority = priority + 1
       let new_dimension = dimension / 2
       let new_length = length / 4
 
-      //TODO
-      //_master.work(
-      //  WorkCommand(new_priority, )
-      //)
+      _master.work(
+        WorkCommand(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+      )
+
+      _master.work(
+        WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+      )
+
     else
-      command.multiply()
+      let blocks = dimesion.usize()
+      let i: U64 = 0
+      let j: U64 = 0
+
+      var matrix_c = recover Array[Array[U64]].init(Array[U64].init(U64(0), blocks), blocks) end
+
+      while i < dimension do
+        while j < dimension do
+          var k: U64 = 0
+
+          while k < dimension do
+            try 
+              matrix_c(i)?(j)? = _matrix_a(i)?(scA + k)? * _matrix_b(srB + k)?(j)? 
+            end 
+            k = k + 1
+          end
+          
+          j = j + 1
+        end
+
+        i = i + 1
+      end
+
+      _master.report(consume matrix_c)
     end

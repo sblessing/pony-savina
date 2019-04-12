@@ -27,7 +27,7 @@ use "micro/threadring"
 //use pi = "parallel/piprecision"
 //use "parallel/quicksort"
 use "parallel/radixsort"
-//use recmatsmul = "parallel/recmatmul"
+use recmatsmul = "parallel/recmatmul"
 use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
@@ -96,7 +96,7 @@ actor Main
         //env.out.print("Piprecision")
         //env.out.print("Quicksort")
         env.out.print("Radixsort")
-        //env.out.print("Recmatmul")
+        env.out.print("Recmatmul")
         env.out.print("Sieve")
         //env.out.print("Sor")
         env.out.print("Trapezoid")
@@ -128,7 +128,7 @@ actor Main
         //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
         //| "Quicksort" => Quicksort.run(parse(QuicksortConfig() ?, env) ?, env)
         | "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
-        //| "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
+        | "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
         | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
         | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
