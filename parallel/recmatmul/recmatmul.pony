@@ -108,7 +108,7 @@ actor Master
     _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
-      _workers.push(Worker(this, _matrix_a, matrix_b, threshold))
+      _workers.push(Worker(this, _matrix_a, _matrix_b, threshold))
     end
 
     _send_work(recover WorkCommand(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length) end)
@@ -120,8 +120,18 @@ actor Master
   be work(command: WorkCommand val) =>
     _send_work(command)
 
-  be report(result: Array[Array[U64] val] val) =>
-    None
+  be report(result: Array[Array[U64] val] val, srC: U64, scC: U64, dimension: U64) =>
+    var i = srC.usize()
+    var j = scC.usize()
+    let dim = dimension.usize()
+
+    while i < dim do
+      while j < dim do
+        try _matrix_c(i)?(j)? = result((i - dim))?((j - dim))? end
+        j = j + 1
+      end
+      i = i + 1
+    end
 
 actor Worker
   let _master: Master
@@ -152,60 +162,71 @@ actor Worker
       let new_length = length / 4
 
       _master.work(
-        WorkCommand(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA, scA, srB, scB, srC, scC, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB, srC, scC, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA, scA, srB, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC, scC + new_dimension, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA + new_dimension, scA, srB, scB, srC + new_dimension, scC, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension) end
       )
 
       _master.work(
-        WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
+        recover WorkCommand(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension) end
       )
 
     else
-      let blocks = dimesion.usize()
-      let i: U64 = 0
-      let j: U64 = 0
+      let blocks = dimension.usize()
+      var i: USize = 0
+      var j: USize = 0
 
-      var matrix_c = recover Array[Array[U64]].init(Array[U64].init(U64(0), blocks), blocks) end
+      _master.report(
+        recover
+          var matrix_c = Array[Array[U64] val]
 
-      while i < dimension do
-        while j < dimension do
-          var k: U64 = 0
+          while i < blocks do
+            var inner = recover Array[U64].init(U64(0), blocks) end
 
-          while k < dimension do
-            try 
-              matrix_c(i)?(j)? = _matrix_a(i)?(scA + k)? * _matrix_b(srB + k)?(j)? 
-            end 
-            k = k + 1
-          end
+            while j < blocks do
+              var k: USize = 0
+
+              while k < blocks do
+                try 
+                  inner(j)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
+                end 
+                k = k + 1
+              end
           
-          j = j + 1
-        end
+              j = j + 1
+            end
 
-        i = i + 1
-      end
+            i = i + 1
 
-      _master.report(consume matrix_c)
+            matrix_c.push(consume inner)
+          end
+
+          consume matrix_c
+        end,
+        srC,
+        scC,
+        dimension
+      )
     end
