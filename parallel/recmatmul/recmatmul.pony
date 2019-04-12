@@ -102,14 +102,18 @@ actor Master
   be report(result: Array[Array[U64] val] val, srC: U64, scC: U64, dimension: U64) =>
     var i = srC.usize()
     var j = scC.usize()
+    var k = 0
+    var l = 0
     let dim = dimension.usize()
 
     while i < dim do
       while j < dim do
-        try _matrix_c(i)?(j)? = result((i - dim))?((j - dim))? else _env.out.print("fail") end
+        try _matrix_c(i)?(j)? = result(k)?(l)? end
         j = j + 1
+        l = l + 1
       end
       i = i + 1
+      k = k + 1
     end
 
   be done() =>
