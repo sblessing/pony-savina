@@ -124,7 +124,10 @@ actor Master
             let result = _matrix_c(i)?(j)?
             let expected: U64 = 1 * _length * i.u64() * j.u64()
             
-            is_valid = (result is expected)
+            if result != expected then
+              is_valid = false
+              break
+            end
           else
             is_valid = false
             break
