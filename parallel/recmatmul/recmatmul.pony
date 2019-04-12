@@ -85,7 +85,7 @@ actor Master
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
 
   fun ref _send_work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
-    if _received < _sent then
+    if (_received == 0) or (_received < _sent) then
       try 
         _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) 
         _sent = _sent + 1
@@ -139,7 +139,6 @@ actor Worker
       _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB, srC + new_dimension, scC, new_length, new_dimension)
       _master.work(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
       _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
-
     else
       let blocks = dimension.usize()
       var i: USize = 0
