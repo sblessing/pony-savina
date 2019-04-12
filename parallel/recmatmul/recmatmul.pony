@@ -96,6 +96,26 @@ actor Master
       end
     end
 
+  fun ref _validate(): Bool =>
+    for i in Range[USize](0, _length.usize()) do
+      for j in Range[USize](0, _length.usize()) do
+        try
+          let result = _matrix_c(i)?(j)?
+          let expected: U64 = _length * i.u64() * j.u64()
+            
+          if result != expected then
+            _env.out.print(result.string() + " = " + expected.string())
+            return false
+          end
+        else
+          return false
+        end
+      end
+    end
+
+    true
+
+
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
 
@@ -120,31 +140,7 @@ actor Master
     _received = _received + 1
 
     if _received == _sent then
-      var is_valid = true
-
-      for i in Range[USize](0, _length.usize()) do
-        for j in Range[USize](0, _length.usize()) do
-          try
-            let result = _matrix_c(i)?(j)?
-            let expected: U64 = _length * i.u64() * j.u64()
-            
-            if result != expected then
-              _env.out.print(result.string() + " = " + expected.string())
-              is_valid = false
-              break
-            end
-          else
-            is_valid = false
-            break
-          end
-        end
-
-        if not is_valid then
-          break
-        end
-      end
-
-      _env.out.print("  Result valid = " + is_valid.string())
+      _env.out.print("  Result valid = " + _validate().string())
     end
 
 actor Worker
