@@ -108,8 +108,8 @@ actor Master
 
     while i < dim do
       while j < dim do
-        let r = try result(k)?(l)? else _env.out.print("fail!") end
-        try _matrix_c(i)?(j)? = r end
+        _env.out.print(i.string() + " " + j.string())
+        try _matrix_c(i)?(j)? = result(k)?(l)? end
         j = j + 1
         l = l + 1
       end
