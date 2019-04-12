@@ -122,7 +122,7 @@ actor Master
         for j in Range[U64](0, _length) do
           try
             let result = _matrix_c(i)?(j)?
-            let excepted: U64 = 1 * _length * i * j
+            let expected: U64 = 1 * _length * i * j
             
             is_valid = (result == expected)
           else
