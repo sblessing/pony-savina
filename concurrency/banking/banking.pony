@@ -30,7 +30,7 @@ actor Banking
     _transactions = args.option("transactions").u64()
     _initial = F64.max_value() / ( _accounts * _transactions ).f64()
 
-    Teller(_initial, _accounts, _transactions).start()
+    Teller(_initial, _accounts, _transactions)
 
 actor Teller
   let _initial_balance: F64
@@ -48,7 +48,6 @@ actor Teller
       _accounts.push(Account(i, _initial_balance))
     end
 
-  be start() =>
     for i in Range[U64](0, _transactions) do
       // Randomly pick source and destination account
       let source = Rand(Time.now()._2.u64()).int[U64]((_accounts.size().u64() / 10) * 8)
@@ -66,21 +65,67 @@ actor Teller
   be reply() =>
     _completed = _completed + 1
 
+type DebitMessage is (Account, Teller, F64)
+type CreditMessage is (Teller, F64, Account)
+type StashToken is (DebitMessage | CreditMessage)
+
+class Stash
+  let _account: Account
+  var _buffer: Array[StashToken]
+
+  new create(account: Account) =>
+    _account = account
+    _buffer = Array[StashToken]
+
+  fun ref stash(token: StashToken) =>
+    _buffer.push(token)
+
+  fun ref unstash() =>
+    try
+      while true do
+        let message = _buffer.shift()?
+
+        match message 
+        | (let a: Account, let t: Teller, let m: F64) => _account.debit(a, t, m)
+        | (let t': Teller, let m': F64, let a': Account) => _account.credit(t', m', a')
+        end
+      end
+
+      true
+    end
+
 actor Account
   let _index: U64
   var _balance: F64
+  var _stash: Stash
+  var _stash_mode: Bool
 
   new create(index: U64, balance: F64) =>
     _index = index
     _balance = balance
+    _stash = Stash(this)
+    _stash_mode = false
 
   be debit(account: Account, teller: Teller, amount: F64) =>
-    _balance = _balance + amount
-    account.reply(teller)
+    if not _stash_mode then
+      _balance = _balance + amount
+      account.reply(teller)
+      _stash.unstash()
+    else
+      _stash.stash((account, teller, amount))
+    end
 
   be credit(teller: Teller, amount: F64, destination: Account) =>
-    _balance = _balance - amount
-    destination.debit(this, teller, amount)
+    if not _stash_mode then
+      _balance = _balance - amount
+      destination.debit(this, teller, amount)
+    else
+      _stash.stash((teller, amount, destination))
+    end
+
+    _stash_mode = true
  
   be reply(teller: Teller) =>
     teller.reply()
+    _stash.unstash()
+    _stash_mode = false

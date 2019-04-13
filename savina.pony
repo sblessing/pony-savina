@@ -1,6 +1,6 @@
 use "cli"
 
-//use "concurrency/banking"
+use "concurrency/banking"
 use barber = "concurrency/barber"
 use bndbuffer = "concurrency/bndbuffer"
 use "concurrency/cigsmok"
@@ -71,7 +71,7 @@ actor Main
       let command = parse(consume spec, env) ?
 
       if command.option("list").bool() == true then
-        //env.out.print("Banking")
+        env.out.print("Banking")
         env.out.print("Barber") 
         env.out.print("BndBuffer")
         env.out.print("Cigsmok")
@@ -103,7 +103,7 @@ actor Main
         env.out.print("Uct")
       else
         match command.option("benchmark").string()
-        //| "Banking" => Banking.run(parse(BankingConfig() ?, env) ?, env)
+        | "Banking" => Banking.run(parse(BankingConfig() ?, env) ?, env)
         | "Barber"  => barber.SleepingBarber.run(parse(barber.BarberConfig() ?, env) ?, env)
         | "BndBuffer" => bndbuffer.BndBuffer.run(parse(bndbuffer.BndBufferConfig() ?, env) ?, env)
         | "Cigsmok" => Cigsmok.run(parse(CigsmokConfig() ?, env) ?, env)
