@@ -43,7 +43,7 @@ actor Quicksort
       list.push((random.nextLong() % max).abs())
     end
 
-    Sorter(None, PositionInitial, threshold).sort(consume list)
+    Sorter(None, PositionInitial, threshold, length).sort(consume list)
 
 primitive PositionInitial
 primitive PositionLeft
@@ -59,18 +59,46 @@ actor Sorter
   let _parent: (Sorter | None)
   let _position: Position
   let _threshold: U64
+  let _length: U64
   var _fragments: U64
   var _result: (List[U64] val | None)
 
-  new create(parent: (Sorter | None), position: Position, threshold: U64) =>
+  new create(parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
     _parent = parent
     _position = position
     _threshold = threshold
+    _length = length
     _fragments = 0
     _result = None
 
-  fun ref _validate() =>
-    None
+  fun ref _validate(): Bool =>
+    
+    match _result
+    | let data: List[U64] val =>
+      if data.size() != _length.usize() then
+        return false
+      end
+      
+      try
+        var current: U64 = data(0)?
+        var next: USize = 1
+
+        while next < _length.usize() do
+          var loop_value = data(next)?
+
+          if loop_value < current then
+            return false
+          end
+
+          current = loop_value
+          next = next + 1
+        end
+      else
+        false
+      end
+    end
+
+    true
 
   fun ref _pivotize(input: List[U64] val, pivot: U64): (List[U64] val, List[U64] val, List[U64] val) =>
     let l = recover input.filter({ (n) => n < pivot }) end
@@ -107,7 +135,7 @@ actor Sorter
 
   fun ref _notify_parent() =>
     if _position is PositionInitial then
-      _validate()
+      @printf[I32]((" Result valid = " + _validate().string()).cstring())
     else
       match (_parent, _result)
       | (let parent: Sorter, let data: List[U64] val) => parent.result(data, _position)
@@ -127,8 +155,8 @@ actor Sorter
         let pivot = input(size / 2)?
         let pivots = _pivotize(input, pivot)
 
-        Sorter(this, PositionLeft, _threshold).sort(pivots._1)
-        Sorter(this, PositionRight, _threshold).sort(pivots._2)
+        Sorter(this, PositionLeft, _threshold, _length).sort(pivots._1)
+        Sorter(this, PositionRight, _threshold, _length).sort(pivots._2)
 
         _result = pivots._3
         _fragments = _fragments + 1
