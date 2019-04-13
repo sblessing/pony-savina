@@ -43,7 +43,7 @@ actor Quicksort
       list.push((random.nextLong() % max).abs())
     end
 
-    Sorter(None, PositionInitial, threshold, length).sort(consume list)
+    Sorter(env, None, PositionInitial, threshold, length).sort(consume list)
 
 primitive PositionInitial
 primitive PositionLeft
@@ -56,6 +56,7 @@ type Position is
   )
 
 actor Sorter
+  let _env: Env
   let _parent: (Sorter | None)
   let _position: Position
   let _threshold: U64
@@ -63,7 +64,8 @@ actor Sorter
   var _fragments: U64
   var _result: (List[U64] val | None)
 
-  new create(parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
+  new create(env: Env, parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
+    _env = env
     _parent = parent
     _position = position
     _threshold = threshold
@@ -144,7 +146,7 @@ actor Sorter
 
   fun ref _notify_parent() =>
     if _position is PositionInitial then
-      @printf[I32]((" Result valid = " + _validate().string()).cstring())
+      _env.out.print(" Result valid = " + _validate().string())
     else
       match (_parent, _result)
       | (let parent: Sorter, let data: List[U64] val) => parent.result(data, _position)
@@ -164,8 +166,8 @@ actor Sorter
         let pivot = input(size / 2)?
         let pivots = _pivotize(input, pivot)
 
-        Sorter(this, PositionLeft, _threshold, _length).sort(pivots._1)
-        Sorter(this, PositionRight, _threshold, _length).sort(pivots._2)
+        Sorter(_env, this, PositionLeft, _threshold, _length).sort(pivots._1)
+        Sorter(_env, this, PositionRight, _threshold, _length).sort(pivots._2)
 
         _result = pivots._3
         _fragments = _fragments + 1
