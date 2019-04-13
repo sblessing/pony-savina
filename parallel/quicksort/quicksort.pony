@@ -72,7 +72,6 @@ actor Sorter
     _result = None
 
   fun ref _validate(): Bool =>
-    
     match _result
     | let data: List[U64] val =>
       if data.size() != _length.usize() then
@@ -101,9 +100,19 @@ actor Sorter
     true
 
   fun ref _pivotize(input: List[U64] val, pivot: U64): (List[U64] val, List[U64] val, List[U64] val) =>
-    let l = recover input.filter({ (n) => n < pivot }) end
-    let r = recover input.filter({ (n) => n > pivot }) end
-    let p = recover input.filter({ (n) => n == pivot}) end
+    let l = recover List[U64] end
+    let r = recover List[U64] end
+    let p = recover List[U64] end
+
+    for item in input.values() do
+      if item < pivot then
+        l.push(item)
+      elseif item > pivot then
+        r.push(item)
+      else
+        p.push(item)
+      end
+    end
 
     (consume l, consume r, consume p)
 
