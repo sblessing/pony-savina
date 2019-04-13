@@ -72,6 +72,13 @@ actor Sorter
   fun ref _validate() =>
     None
 
+  fun ref _pivotize(input: List[U64] val, pivot: U64): (List[U64] val, List[U64] val, List[U64] val) =>
+    let l = recover input.filter({ (n) => n < pivot }) end
+    let r = recover input.filter({ (n) => n > pivot }) end
+    let p = recover input.filter({ (n) => n == pivot}) end
+
+    (consume l, consume r, consume p)
+
   fun ref _sort_sequentially(input: List[U64] val): List[U64] val ? =>
     let size = input.size()
 
@@ -80,19 +87,16 @@ actor Sorter
     end
 
     let pivot = input(size / 2)?
-
-    let left_unsorted = recover input.partition({ (n) => (n < pivot) })._1 end
-    let right_unsorted = recover input.partition({ (n) => (n > pivot) })._2 end
-    let pivots: List[U64] val = recover input.partition({ (n) => ( n == pivot )})._1 end
-
+    let pivots = _pivotize(input, pivot)
+    
     try
-      let left_sorted = _sort_sequentially(consume left_unsorted)?
-      let right_sorted = _sort_sequentially(consume right_unsorted)?
+      let left_sorted = _sort_sequentially(pivots._1)?
+      let right_sorted = _sort_sequentially(pivots._2)?
 
       recover 
         let sorted = List[U64] 
         sorted.concat(left_sorted.values())
-        sorted.concat(pivots.values())
+        sorted.concat(pivots._3.values())
         sorted.concat(right_sorted.values())
 
         consume sorted
@@ -121,14 +125,12 @@ actor Sorter
     else
       try
         let pivot = input(size / 2)?
-        let left_unsorted = recover input.partition({ (n) => (n < pivot) })._1 end
-        let right_unsorted = recover input.partition({ (n) => (n > pivot) })._2 end
-        let pivots = recover input.partition({ (n) => ( n == pivot )})._1 end
+        let pivots = _pivotize(input, pivot)
 
-        Sorter(this, PositionLeft, _threshold).sort(consume left_unsorted)
-        Sorter(this, PositionRight, _threshold).sort(consume right_unsorted)
+        Sorter(this, PositionLeft, _threshold).sort(pivots._1)
+        Sorter(this, PositionRight, _threshold).sort(pivots._2)
 
-        _result = consume pivots
+        _result = pivots._3
         _fragments = _fragments + 1
       end
     end
