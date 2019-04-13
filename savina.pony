@@ -25,8 +25,8 @@ use "micro/threadring"
 //use "parallel/filterbank"
 //use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
-use "parallel/quicksort"
-use "parallel/radixsort"
+use quicksort = "parallel/quicksort"
+use radixsort = "parallel/radixsort"
 use recmatmul = "parallel/recmatmul"
 use "parallel/sieve"
 //use "parallel/sor"
@@ -126,8 +126,8 @@ actor Main
         //| "Filterbank"   => Filterbank.run(parse(FilterbankConfig() ?, env) ?, env)
         //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
         //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
-        | "Quicksort" => Quicksort.run(parse(QuicksortConfig() ?, env) ?, env)
-        | "Radixsort" => Radixsort.run(parse(RadixsortConfig() ?, env) ?, env)
+        | "Quicksort" => quicksort.Quicksort.run(parse(quicksort.QuicksortConfig() ?, env) ?, env)
+        | "Radixsort" => radixsort.Radixsort.run(parse(radixsort.RadixsortConfig() ?, env) ?, env)
         | "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
         | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
         //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
