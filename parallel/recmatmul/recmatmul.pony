@@ -42,7 +42,15 @@ actor Collector
 
   new create(length: U64) =>
     _length = length
-    _result = Array[Array[U64]].init(Array[U64].init(U64(0), _length.usize()), length.usize()) 
+    _result = Array[Array[U64]]
+
+    let size = _length.usize()
+    var i = USize(0)
+    
+    while i < _length do
+      _result.push(Array[U64].init(U64(0), size))
+      i = i + 1
+    end 
   
   fun box _validate(): Bool =>
     var i: USize = 0
