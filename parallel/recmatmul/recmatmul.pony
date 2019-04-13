@@ -83,7 +83,7 @@ actor Master
     _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
-      _workers.push(Worker(this, _matrix_a, _matrix_b, threshold))
+      _workers.push(Worker(env, this, _matrix_a, _matrix_b, threshold))
     end
 
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
@@ -146,13 +146,15 @@ actor Master
     end
 
 actor Worker
+  let _env: Env
   let _master: Master
   let _matrix_a: Array[Array[U64] val] val
   let _matrix_b: Array[Array[U64] val] val
   let _threshold: U64
   var _did_work: Bool
 
-  new create(master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
+  new create(env: Env, master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
+    _env = env
     _master = master
     _matrix_a = a
     _matrix_b = b
@@ -174,16 +176,16 @@ actor Worker
       _master.work(new_priority, srA + new_dimension, scA, srB, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
       _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
     else
-      let blocks = dimension.usize()
       var i: USize = srC.usize()
       var m: USize = 0
       var n: USize = 0
-      let endR = i + blocks
-      let endC = scC.usize() + blocks 
+      let dim = dimension.usize()
+      let endR = i + dim
+      let endC = scC.usize() + dim 
       
       _master.report(
         recover
-          var matrix_c = Array[Array[U64]].init(Array[U64].init(0, blocks), blocks)
+          var matrix_c = Array[Array[U64]].init(Array[U64].init(0, dim), dim)
 
           while i < endR do
             var j: USize = scC.usize()
@@ -192,9 +194,11 @@ actor Worker
             while j < endC do
               var k: USize = 0
 
-              while k < blocks do
+              while k < dim do
                 try 
                   matrix_c(m)?(n)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
+                else
+                  _env.out.print("FAIL!")
                 end 
                 k = k + 1
               end
