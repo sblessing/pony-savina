@@ -83,7 +83,7 @@ actor Master
     _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
-      _workers.push(Worker(env, this, _matrix_a, _matrix_b, threshold))
+      _workers.push(Worker(this, _matrix_a, _matrix_b, threshold))
     end
 
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
@@ -106,6 +106,8 @@ actor Master
           if result != expected then
             _env.out.print(result.string() + " = " + expected.string())
             return false
+          else
+            _env.out.print("valid!")
           end
         else
           return false
@@ -146,15 +148,13 @@ actor Master
     end
 
 actor Worker
-  let _env: Env
   let _master: Master
   let _matrix_a: Array[Array[U64] val] val
   let _matrix_b: Array[Array[U64] val] val
   let _threshold: U64
   var _did_work: Bool
 
-  new create(env: Env, master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
-    _env = env
+  new create(master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
     _master = master
     _matrix_a = a
     _matrix_b = b
@@ -195,11 +195,7 @@ actor Worker
               var k: USize = 0
 
               while k < dim do
-                try 
-                  matrix_c(m)?(n)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? 
-                else
-                  _env.out.print("FAIL!")
-                end 
+                try matrix_c(m)?(n)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? end 
                 k = k + 1
               end
             
