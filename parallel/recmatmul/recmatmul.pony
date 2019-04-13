@@ -37,30 +37,35 @@ actor Recmatmul
     Master(env, workers, data_length, threshold)
 
 actor Collector
-  let _env: Env
   let _length: U64
   var _result: Array[Array[U64]]
 
-  new create(env: Env, length: U64) =>
-    _env = env
+  new create(length: U64) =>
     _length = length
     _result = Array[Array[U64]].init(Array[U64].init(U64(0), _length.usize()), length.usize()) 
   
-  fun ref _validate(): Bool =>
-    for i in Range[USize](0, _length.usize()) do
-      for j in Range[USize](0, _length.usize()) do
+  fun box _validate(): Bool =>
+    var i: USize = 0
+    var j: USize = 0
+    let size = _length.usize()
+
+    while i < size do
+      while j < size do
         try
           let actual = _result(i)?(j)?
           let expected: U64 = _length * i.u64() * j.u64()
             
           if actual != expected then
-            _env.out.print(actual.string() + " != " + expected.string())
             return false
           end
         else
           return false
         end
+
+        j = j + 1
       end
+
+      i = i + 1
     end
 
     true
@@ -77,8 +82,8 @@ actor Collector
       end
     end
   
-  be validate() =>
-    _env.out.print(" Result valid = " + _validate().string())
+  fun _final() =>
+    @printf[I32]((" Result valid = " + _validate().string() + "\n").cstring())
 
 
 actor Master
@@ -101,7 +106,7 @@ actor Master
     _num_blocks = data_length * data_length
     _sent = 0
     _received = 0
-    _collector = Collector(env, data_length)
+    _collector = Collector(data_length)
 
     let a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
     let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
@@ -141,13 +146,6 @@ actor Master
     
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
-
-  be done() =>
-    _received = _received + 1
-
-    if _received == _sent then
-      _collector.validate()
-    end
 
 actor Worker
   let _master: Master
@@ -215,5 +213,3 @@ actor Worker
         end
       )
     end
-
-    _master.done()
