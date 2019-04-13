@@ -181,10 +181,10 @@ actor Sorter
 
         match _result
         | let data: List[U64] val =>
-          if _position is PositionLeft then
+          if position is PositionLeft then
             temp.concat(sorted.values())
             temp.concat(data.values())
-          elseif _position is PositionRight then
+          elseif position is PositionRight then
             temp.concat(data.values())
             temp.concat(sorted.values())
           end
