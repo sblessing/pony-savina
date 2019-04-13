@@ -56,6 +56,7 @@ actor Collector
           let expected: U64 = _length * i.u64() * j.u64()
             
           if actual != expected then
+            @printf[I32]((actual.string() + " = " + expected.string() + "\n").cstring())
             return false
           end
         else
