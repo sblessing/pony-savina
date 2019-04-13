@@ -103,7 +103,7 @@ actor Main
         env.out.print("Uct")
       else
         match command.option("benchmark").string()
-        | "Banking" => banking.Banking.run(parse(BankingConfig() ?, env) ?, env)
+        | "Banking" => banking.Banking.run(parse(banking.BankingConfig() ?, env) ?, env)
         | "Barber"  => barber.SleepingBarber.run(parse(barber.BarberConfig() ?, env) ?, env)
         | "BndBuffer" => bndbuffer.BndBuffer.run(parse(bndbuffer.BndBufferConfig() ?, env) ?, env)
         | "Cigsmok" => Cigsmok.run(parse(CigsmokConfig() ?, env) ?, env)
