@@ -65,8 +65,32 @@ actor Teller
   be reply() =>
     _completed = _completed + 1
 
-type DebitMessage is (Account, Teller, F64)
-type CreditMessage is (Teller, F64, Account)
+class DebitMessage
+  let _account: Account
+  let _teller: Teller
+  let _amount: F64
+
+  new create(account: Account, teller: Teller, amount: F64) =>
+    _account = account
+    _teller = teller
+    _amount = amount
+
+  fun ref requeue(receiver: Account) =>
+    receiver.debit(_account, _teller, _amount)
+
+class CreditMessage
+  let _account: Account
+  let _teller: Teller
+  let _amount: F64
+
+  new create(account: Account, teller: Teller, amount: F64) =>
+    _account = account
+    _teller = teller
+    _amount = amount
+  
+  fun ref requeue(receiver: Account) =>
+    receiver.credit(_teller, _amount, _account)
+
 type StashToken is (DebitMessage | CreditMessage)
 
 class Stash
@@ -84,11 +108,7 @@ class Stash
     try
       while true do
         let message = _buffer.shift()?
-
-        match message 
-        | (let a: Account, let t: Teller, let m: F64) => _account.debit(a, t, m)
-        | (let t': Teller, let m': F64, let a': Account) => _account.credit(t', m', a')
-        end
+        message.requeue(_account)
       end
 
       true
@@ -112,7 +132,7 @@ actor Account
       account.reply(teller)
       _stash.unstash()
     else
-      _stash.stash((account, teller, amount))
+      _stash.stash(DebitMessage(account, teller, amount))
     end
 
   be credit(teller: Teller, amount: F64, destination: Account) =>
@@ -120,7 +140,7 @@ actor Account
       _balance = _balance - amount
       destination.debit(this, teller, amount)
     else
-      _stash.stash((teller, amount, destination))
+      _stash.stash(CreditMessage(destination, teller, amount))
     end
 
     _stash_mode = true
