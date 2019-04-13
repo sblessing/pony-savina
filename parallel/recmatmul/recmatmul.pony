@@ -93,8 +93,8 @@ actor Master
   let _length: U64
   let _num_blocks: U64
 
-  let _matrix_a: Array[Array[U64] val] val
-  let _matrix_b: Array[Array[U64] val] val
+  let _matrix_a: Array[Array[U64] iso] val
+  let _matrix_b: Array[Array[U64] iso] val
   let _collector: Collector
 
   var _sent: U64
@@ -109,29 +109,24 @@ actor Master
     _received = 0
     _collector = Collector(data_length)
 
-    let a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
-    let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
-    
-    // Initialize the matrix
-    // This should actually happen outside
-    // the benchmark iteration.
+    let size = _length.usize()
+
+    var a: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end
+    var b: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end 
+
     try
-      for i in Range[USize](0, data_length.usize()) do
-        let aI = recover Array[U64].init(U64(0), data_length.usize()) end
-        let bI = recover Array[U64].init(U64(0), data_length.usize()) end
+      for i in Range[USize](0, size) do
+        a(i)? = recover Array[U64].init(U64(0), size) end
+        b(i)? = recover Array[U64].init(U64(0), size) end
 
-        for j in Range[USize](0, data_length.usize()) do
-          aI(j)? = i.u64()
-          bI(j)? = j.u64()
+        for j in Range[USize](0, size) do
+          a(i)?(j)? = i.u64()
+          b(i)?(j)? = j.u64()
         end
-
-        a.push(consume aI)
-        b.push(consume bI)
       end
     end
 
-    _matrix_a = consume a 
-    _matrix_b = consume b 
+    (_matrix_a, _matrix_b) = (consume a, consume b)
  
     for k in Range[USize](0, workers.usize()) do
       _workers.push(Worker(this, _collector, _matrix_a, _matrix_b, threshold))
@@ -151,12 +146,12 @@ actor Master
 actor Worker
   let _master: Master
   let _collector: Collector
-  let _matrix_a: Array[Array[U64] val] val
-  let _matrix_b: Array[Array[U64] val] val
+  let _matrix_a: Array[Array[U64] iso] val
+  let _matrix_b: Array[Array[U64] iso] val
   let _threshold: U64
   var _did_work: Bool
 
-  new create(master: Master, collector: Collector, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
+  new create(master: Master, collector: Collector, a: Array[Array[U64] iso] val, b: Array[Array[U64] iso] val, threshold: U64) =>
     _master = master
     _collector = collector
     _matrix_a = a
