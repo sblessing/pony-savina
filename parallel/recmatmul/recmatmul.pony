@@ -134,13 +134,11 @@ actor Master
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
 
   fun ref _send_work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
-    if (_received == 0) or (_received < _sent) then
-      try 
-        _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) 
-        _sent = _sent + 1
-      end
+    try 
+      _workers((srC + scC).usize() % _workers.size())?.work(priority, srA, scA, srB, scB, srC, scC, length, dimension) 
+      _sent = _sent + 1
     end
-
+    
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
 
