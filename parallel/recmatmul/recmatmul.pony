@@ -196,14 +196,16 @@ actor Worker
            
             while j < endC do
               var k: USize = 0
+              var product: U64 = 0
 
               while k < dim do
                 try
-                  let product = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)?
-                  partial_result.push((i,j,product))
+                  product = product + ( _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? )
                 end
                 k = k + 1
               end
+
+              partial_result.push((i,j,product))
             
               j = j + 1
             end
