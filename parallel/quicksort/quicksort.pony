@@ -184,7 +184,7 @@ actor Sorter
           if _position is PositionLeft then
             temp.concat(sorted.values())
             temp.concat(data.values())
-          elseif position is PositionRight then
+          elseif _position is PositionRight then
             temp.concat(data.values())
             temp.concat(sorted.values())
           end
