@@ -36,14 +36,14 @@ actor Quicksort
     let max = args.option("max").u64()
     let threshold = args.option("threshold").u64()
 
-    let list = recover List[U64] end
+    let data = recover Array[U64] end
     let random = SimpleRand(seed)
 
     for i in Range[U64](0, length) do
-      list.push((random.nextLong() % max).abs())
+      data.push((random.nextLong() % max).abs())
     end
 
-    Sorter(env, None, PositionInitial, threshold, length).sort(consume list)
+    Sorter(env, None, PositionInitial, threshold, length).sort(consume data)
 
 primitive PositionInitial
 primitive PositionLeft
@@ -62,7 +62,7 @@ actor Sorter
   let _threshold: U64
   let _length: U64
   var _fragments: U64
-  var _result: (List[U64] val | None)
+  var _result: (Array[U64] val | None)
 
   new create(env: Env, parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
     _env = env
@@ -75,7 +75,7 @@ actor Sorter
 
   fun ref _validate(): Bool =>
     match _result
-    | let data: List[U64] val =>
+    | let data: Array[U64] val =>
       if data.size() != _length.usize() then
         return false
       end
@@ -101,10 +101,10 @@ actor Sorter
 
     true
 
-  fun ref _pivotize(input: List[U64] val, pivot: U64): (List[U64] val, List[U64] val, List[U64] val) =>
-    let l = recover List[U64] end
-    let r = recover List[U64] end
-    let p = recover List[U64] end
+  fun ref _pivotize(input: Array[U64] val, pivot: U64): (Array[U64] val, Array[U64] val, Array[U64] val) =>
+    let l = recover Array[U64] end
+    let r = recover Array[U64] end
+    let p = recover Array[U64] end
 
     for item in input.values() do
       if item < pivot then
@@ -118,7 +118,7 @@ actor Sorter
 
     (consume l, consume r, consume p)
 
-  fun ref _sort_sequentially(input: List[U64] val): List[U64] val ? =>
+  fun ref _sort_sequentially(input: Array[U64] val): Array[U64] val ? =>
     let size = input.size()
 
     if size < 2 then
@@ -133,7 +133,7 @@ actor Sorter
       let right_sorted = _sort_sequentially(pivots._2)?
 
       recover 
-        let sorted = List[U64] 
+        let sorted = Array[U64] 
         sorted.concat(left_sorted.values())
         sorted.concat(pivots._3.values())
         sorted.concat(right_sorted.values())
@@ -149,11 +149,11 @@ actor Sorter
       _env.out.print(" Result valid = " + _validate().string())
     else
       match (_parent, _result)
-      | (let parent: Sorter, let data: List[U64] val) => parent.result(data, _position)
+      | (let parent: Sorter, let data: Array[U64] val) => parent.result(data, _position)
       end
     end
 
-  be sort(input: List[U64] val) =>
+  be sort(input: Array[U64] val) =>
     let size = input.size()
 
     if size < _threshold.usize() then
@@ -174,13 +174,13 @@ actor Sorter
       end
     end
 
-  be result(sorted: List[U64] val, position: Position) => None
+  be result(sorted: Array[U64] val, position: Position) => None
     if sorted.size() > 0 then
       _result = recover
-        let temp = List[U64]
+        let temp = Array[U64]
 
         match _result
-        | let data: List[U64] val =>
+        | let data: Array[U64] val =>
           if position is PositionLeft then
             temp.concat(sorted.values())
             temp.concat(data.values())
