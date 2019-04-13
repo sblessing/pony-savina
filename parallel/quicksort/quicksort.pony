@@ -194,10 +194,10 @@ actor Sorter
           None
         end
       end
+    end
 
-      _fragments = _fragments + 1
+    _fragments = _fragments + 1
 
-      if _fragments == 3 then
-        _notify_parent()
-      end
+    if _fragments == 3 then
+      _notify_parent()
     end
