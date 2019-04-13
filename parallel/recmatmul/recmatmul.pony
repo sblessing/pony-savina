@@ -36,6 +36,42 @@ actor Recmatmul
     
     Master(env, workers, data_length, threshold)
 
+actor Collector
+  let _env: Env
+  let _length: U64
+  var _result: Array[Array[U64]]
+
+  new create(env: Env, length: U64) =>
+    _env = env
+    _length = length
+    _result = Array[Array[U64]].init(Array[U64].init(U64(0), _length.usize()), length.usize()) 
+  
+  fun ref _validate(): Bool =>
+    for i in Range[USize](0, _length.usize()) do
+      for j in Range[USize](0, _length.usize()) do
+        try
+          let actual = _result(i)?(j)?
+          let expected: U64 = _length * i.u64() * j.u64()
+            
+          if actual != expected then
+            _env.out.print(actual.string() + " != " + expected.string())
+            return false
+          end
+        else
+          return false
+        end
+      end
+    end
+
+    true
+
+  be collect(partial_result: Array[(USize, USize, U64)] val) =>
+    None
+  
+  be validate() =>
+    _env.out.print(" Result valid = " + _validate().string())
+
+
 actor Master
   let _env: Env
   let _workers: Array[Worker]
@@ -44,7 +80,7 @@ actor Master
 
   let _matrix_a: Array[Array[U64] val] val
   let _matrix_b: Array[Array[U64] val] val
-  let _matrix_c: Array[Array[U64]]
+  let _collector: Collector
 
   var _sent: U64
   var _received: U64
@@ -56,10 +92,11 @@ actor Master
     _num_blocks = data_length * data_length
     _sent = 0
     _received = 0
+    _collector = Collector(env, data_length)
 
     let a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
     let b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
-      
+    
     // Initialize the matrix
     // This should actually happen outside
     // the benchmark iteration.
@@ -80,10 +117,9 @@ actor Master
 
     _matrix_a = consume a 
     _matrix_b = consume b 
-    _matrix_c = Array[Array[U64]].init(Array[U64].init(U64(0), data_length.usize()), data_length.usize()) 
  
     for k in Range[USize](0, workers.usize()) do
-      _workers.push(Worker(this, _matrix_a, _matrix_b, threshold))
+      _workers.push(Worker(this, _collector, _matrix_a, _matrix_b, threshold))
     end
 
     _send_work(0, 0, 0, 0, 0, 0, 0, _num_blocks, data_length)
@@ -96,66 +132,27 @@ actor Master
       end
     end
 
-  fun ref _validate(): Bool =>
-    for i in Range[USize](0, _length.usize()) do
-      for j in Range[USize](0, _length.usize()) do
-        try
-          let result = _matrix_c(i)?(j)?
-          let expected: U64 = _length * i.u64() * j.u64()
-            
-          if result != expected then
-            _env.out.print(result.string() + " = " + expected.string())
-            return false
-          else
-            _env.out.print("valid!")
-          end
-        else
-          return false
-        end
-      end
-    end
-
-    true
-
-
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
-
-  be report(result: Array[Array[U64] ref] val, srC: U64, scC: U64, dimension: U64) =>
-    var i = srC.usize()
-    var k = USize(0)
-    let dim = dimension.usize()
-    let endR = i + dim
-    let endC = scC.usize() + dim
-
-    while i < endR do
-      var j = scC.usize()
-      var l = USize(0)
-      while j < endC do
-        try _matrix_c(i)?(j)? = result(k)?(l)? end
-        j = j + 1
-        l = l + 1
-      end
-      i = i + 1
-      k = k + 1
-    end
 
   be done() =>
     _received = _received + 1
 
     if _received == _sent then
-      _env.out.print("  Result valid = " + _validate().string())
+      _collector.validate()
     end
 
 actor Worker
   let _master: Master
+  let _collector: Collector
   let _matrix_a: Array[Array[U64] val] val
   let _matrix_b: Array[Array[U64] val] val
   let _threshold: U64
   var _did_work: Bool
 
-  new create(master: Master, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
+  new create(master: Master, collector: Collector, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
     _master = master
+    _collector = collector
     _matrix_a = a
     _matrix_b = b
     _threshold = threshold
@@ -177,41 +174,36 @@ actor Worker
       _master.work(new_priority, srA + new_dimension, scA + new_dimension, srB + new_dimension, scB + new_dimension, srC + new_dimension, scC + new_dimension, new_length, new_dimension)
     else
       var i: USize = srC.usize()
-      var m: USize = 0
-      var n: USize = 0
       let dim = dimension.usize()
       let endR = i + dim
       let endC = scC.usize() + dim 
       
-      _master.report(
+      _collector.collect(
         recover
-          var matrix_c = Array[Array[U64]].init(Array[U64].init(0, dim), dim)
+          var partial_result = Array[(USize, USize, U64)]
 
           while i < endR do
             var j: USize = scC.usize()
-            n = 0
-
+           
             while j < endC do
               var k: USize = 0
 
               while k < dim do
-                try matrix_c(m)?(n)? = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)? end 
+                try
+                  let product = _matrix_a(i)?(scA.usize() + k)? * _matrix_b(srB.usize() + k)?(j)?
+                  partial_result.push((i,j,product))
+                end
                 k = k + 1
               end
             
               j = j + 1
-              n = n + 1
             end
 
             i = i + 1
-            m = m + 1
           end
 
-          consume matrix_c
-        end,
-        srC,
-        scC,
-        dimension
+          consume partial_result
+        end
       )
     end
 
