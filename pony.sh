@@ -186,19 +186,20 @@ for runner in $($1 -l); do
 
   for i in `seq 1 $2`; do
     START=`${DATE}`
+    CPUS=$(getconf _NPROCESSORS_ONLN)
 
     if [ "$MODE" = "memory-valgrind" ]; then
-      MEMORY="$(valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponynoblock >> stdout.log; grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1; rm massif.out)"
+      MEMORY="$(valgrind -q --tool=massif --pages-as-heap=yes --massif-out-file=massif.out $1 -b=${bench} --ponythreads ${CPUS} --ponynoblock >> stdout.log; grep mem_heap_B massif.out | sed -e 's/mem_heap_B=\(.*\)/\1/' | sort -g | tail -n 1; rm massif.out)"
       BENCHOUT="$(cat stdout.log)"
       rm stdout.log
 		elif [ "$MODE" = "memory-time" ]; then
-		  $(/usr/bin/time -o profile.log --format='%M' $1 -b=${bench} --ponynoblock >> stdout.log)
+		  $(/usr/bin/time -o profile.log --format='%M' $1 -b=${bench} --ponythreads ${CPUS} --ponynoblock >> stdout.log)
 			MEMORY="$(cat profile.log)"
 			BENCHOUT="$(cat stdout.log)"
 			rm profile.log
 			rm stdout.log
     else
-      BENCHOUT="$($1 -b=${bench} --ponynoblock --ponythreads $(getconf _NPROCESSORS_ONLN))"
+      BENCHOUT="$($1 -b=${bench} --ponynoblock --ponythreads ${CPUS})"
     fi
 
     END=`${DATE}`
