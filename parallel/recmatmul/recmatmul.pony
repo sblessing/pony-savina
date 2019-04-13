@@ -93,8 +93,8 @@ actor Master
   let _length: U64
   let _num_blocks: U64
 
-  let _matrix_a: Array[Array[U64] iso] val
-  let _matrix_b: Array[Array[U64] iso] val
+  let _matrix_a: Array[Array[U64] val] val
+  let _matrix_b: Array[Array[U64] val] val
   let _collector: Collector
 
   var _sent: U64
@@ -111,18 +111,21 @@ actor Master
 
     let size = _length.usize()
 
-    var a: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end
-    var b: Array[Array[U64] iso] iso = recover Array[Array[U64] iso] end 
+    var a: Array[Array[U64] val] iso = recover Array[Array[U64] val] end
+    var b: Array[Array[U64] val] iso = recover Array[Array[U64] val] end 
 
     try
       for i in Range[USize](0, size) do
-        a(i)? = recover Array[U64].init(U64(0), size) end
-        b(i)? = recover Array[U64].init(U64(0), size) end
+        let aI = recover Array[U64].init(U64(0), size) end
+        let bI = recover Array[U64].init(U64(0), size) end
 
         for j in Range[USize](0, size) do
-          a(i)?(j)? = i.u64()
-          b(i)?(j)? = j.u64()
+          aI(j)? = i.u64()
+          bI(j)? = j.u64()
         end
+
+        a.push(consume aI)
+        b.push(consume bI)
       end
     end
 
@@ -146,12 +149,12 @@ actor Master
 actor Worker
   let _master: Master
   let _collector: Collector
-  let _matrix_a: Array[Array[U64] iso] val
-  let _matrix_b: Array[Array[U64] iso] val
+  let _matrix_a: Array[Array[U64] val] val
+  let _matrix_b: Array[Array[U64] val] val
   let _threshold: U64
   var _did_work: Bool
 
-  new create(master: Master, collector: Collector, a: Array[Array[U64] iso] val, b: Array[Array[U64] iso] val, threshold: U64) =>
+  new create(master: Master, collector: Collector, a: Array[Array[U64] val] val, b: Array[Array[U64] val] val, threshold: U64) =>
     _master = master
     _collector = collector
     _matrix_a = a
