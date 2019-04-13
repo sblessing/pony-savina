@@ -47,7 +47,7 @@ actor Collector
     let size = _length.usize()
     var i = USize(0)
     
-    while i < _length do
+    while i < size do
       _result.push(Array[U64].init(U64(0), size))
       i = i + 1
     end 
