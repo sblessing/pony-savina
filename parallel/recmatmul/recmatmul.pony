@@ -66,7 +66,16 @@ actor Collector
     true
 
   be collect(partial_result: Array[(USize, USize, U64)] val) =>
-    None
+    for n in Range[USize](0, partial_result.size()) do
+      try
+        let coord = partial_result(n)?
+        let i = coord._1
+        let j = coord._2
+        let r = coord._3
+
+        _result(i)?(j)? = r
+      end
+    end
   
   be validate() =>
     _env.out.print(" Result valid = " + _validate().string())
