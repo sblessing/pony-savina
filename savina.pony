@@ -21,7 +21,7 @@ use "micro/threadring"
 //use "parallel/apsp"
 //use "parallel/astar"
 //use "parallel/bitonicsort"
-//use "parallel/facloc"
+use "parallel/facloc"
 use filterbank = "parallel/filterbank"
 //use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
@@ -90,7 +90,7 @@ actor Main
         //env.out.print("Apsp")
         //env.out.print("Astar")
         //env.out.print("Bitonicsort")
-        //env.out.print("Facloc")			
+        env.out.print("Facloc")			
         env.out.print("Filterbank")             
         //env.out.print("Nqueenk")
         //env.out.print("Piprecision")
@@ -122,7 +122,7 @@ actor Main
         //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
         //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
-        //| "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				
+        | "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				
         | "Filterbank"   => filterbank.Filterbank.run(parse(filterbank.FilterbankConfig() ?, env) ?, env)
         //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
         //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
