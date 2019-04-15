@@ -22,7 +22,7 @@ use "micro/threadring"
 //use "parallel/astar"
 //use "parallel/bitonicsort"
 //use "parallel/facloc"
-use "parallel/filterbank"
+use filterbank = "parallel/filterbank"
 //use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
 use quicksort = "parallel/quicksort"
@@ -123,7 +123,7 @@ actor Main
         //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
         //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
         //| "Facloc" => Facloc.run(parse(FaclocConfig() ?, env) ?, env)				
-        | "Filterbank"   => Filterbank.run(parse(FilterbankConfig() ?, env) ?, env)
+        | "Filterbank"   => filterbank.Filterbank.run(parse(filterbank.FilterbankConfig() ?, env) ?, env)
         //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
         //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
         | "Quicksort" => quicksort.Quicksort.run(parse(quicksort.QuicksortConfig() ?, env) ?, env)
