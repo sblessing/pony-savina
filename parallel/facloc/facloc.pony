@@ -74,7 +74,7 @@ primitive PointFactory
 
     recover Point(sum_x / size, sum_y / size) end
 
-class val Point is Stringable
+class val Point
   let _x: F64
   let _y: F64
 
@@ -91,12 +91,6 @@ class val Point is Stringable
     let y = point.get_y() - _y
     
     F64((x * x) - (y * y)).sqrt()
-
-  fun box string(): String iso^ =>
-    let x = Format.float[F64](_x where prec = 2, fmt = FormatFix)
-    let y = Format.float[F64](_y where prec = 2, fmt = FormatFix)
-
-    ("(" + x.string() + ", " + y.string() + ")").string() 
     
 class Box
   let _x1: F64
@@ -119,7 +113,7 @@ class Box
   fun ref middle(): Point => 
     recover Point((_x1 + _x2) / 2, (_y1 + _y2) / 2) end
     
-class Facility is Stringable
+class Facility
   let _center: Point
   let _points: SetIs[Point]
   var _distance: F64
@@ -144,10 +138,6 @@ class Facility is Stringable
   fun ref get_total_distance(): F64 => _distance
 
   fun ref get_number_of_points(): USize => _points.size()
-
-  fun box string(): String iso^ =>
-    ("Facility{center: " + _center.string() + ", distance: " + _distance.string() + ", num-pts: " + _points.size().string() + "}").string()
-  
 
 actor Facloc
   new run(args: Command val, env: Env) =>
