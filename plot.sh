@@ -177,6 +177,7 @@ function produce_html {
   done
 
   ##DOM=$(join "\n" ${HTML_OUT[@]})
+  HTML_OUT+=(${CURRENT})
   TEMPLATE=${TEMPLATE/__PLOTS__/${HTML_OUT[@]}}
   echo ${TEMPLATE} >> "pony.html"
 }
