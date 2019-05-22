@@ -10,7 +10,7 @@ class BenchmarkRunner:
   def _get_executables(self, sPath):
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
 
-    for sFilename in os.listdir('.'):
+    for sFilename in os.listdir('./' + sPath):
       if os.path.isfile(sFilename):
         st = os.stat(sFilename)
         mode = st.st_mode
