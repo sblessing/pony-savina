@@ -2,6 +2,7 @@ import argparse
 import re
 import os
 import subprocess
+import importlib
 
 class HardwareThreading:
   def _detect_cpus(self):
@@ -18,7 +19,7 @@ class HardwareThreading:
             iSibling = int(f.readline().split(",")[0])
 
             if iCoreId != iSibling:
-              if not self._bPhysical:
+              if self._bHyperthreads:
                 self._hyperthreads[iCoreId] = sFullpath
               
               bHyperthread = True
@@ -44,15 +45,15 @@ class HardwareThreading:
       if "-" in line:
         #numa placement is given by range
         interval = line.split("-")
-        cores = [i for i in range(int(interval[0]), int(interval[1])) if not self._bPhysical or i in self._cpus.keys()]
+        cores = [i for i in range(int(interval[0]), int(interval[1])) if self._bHyperthreads or i in self._cpus.keys()]
       else:
         #numa placement is given absolute
-        cores = sorted([int(i) for i in line.split(",") if not self._bPhysical or int(i) in self._cpus.keys()])
+        cores = sorted([int(i) for i in line.split(",") if self._bHyperthreads or int(i) in self._cpus.keys()])
       
       self._placement.append(cores)
   
   def _print_system_info(self):
-    sHyperthreadMode = "on" if not self._bPhysical else "off"
+    sHyperthreadMode = "on" if self._bHyperthreads else "off"
     iPhysicalCoreCount = len(self._cpus.keys())
     sPhysicalCores = ",".join([str(i) for i in sorted(self._cpus.keys())])
     iHyperthreadCount = len(self._hyperthreads.keys())
@@ -61,18 +62,18 @@ class HardwareThreading:
     print("CPU setup [hyperthreading = %s]:" % (sHyperthreadMode))
     print("  %d Physical Cores\t: %s" % (iPhysicalCoreCount, sPhysicalCores))
 
-    if not self._bPhysical:
+    if self._bHyperthreads:
       print("  %d Logical Cores\t: %s" % (iHyperthreadCount, sLogicalCores))
 
     for (id, node) in enumerate(self._placement):
       print("  NUMA Node %d\t\t: %s" % (id, ",".join([str(n) for n in node])))
 
 
-  def __init__(self, bPhysical):
+  def __init__(self, bHyperthreads):
     self._current_node = 0
     self._current_core = 0
 
-    self._bPhysical = bPhysical
+    self._bHyperthreads = bHyperthreads
     self._basepath = "/sys/devices/system/cpu/"
     self._siblings = "/topology/thread_siblings_list"
     self._cpus = {}
@@ -111,7 +112,6 @@ class HardwareThreading:
     except KeyError:
       sPath = self._hyperthreads[iCoreId]
     
-
     with open(sPath + "/online", "w") as cpu_file:
       print(value, file=cpu_file)
 
@@ -138,13 +138,19 @@ def main():
     """)
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('-p', '--physical', dest='physical', action='store_true')
+  parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
+  parser.add_argument('-r', "--run", dest='module', action='append')
   args = parser.parse_args()
 
-  with HardwareThreading(args.physical) as cores:
+  modules = [importlib.import_module("runners/" + i) for i in args.module]
+
+  with HardwareThreading(args.hyperthreads) as cores:
     cores.disable(all = True)
 
     for core in cores:
       cores.enable(core)
+
+      for module in modules:
+        module.run()
 
 if __name__ == "__main__": main()
