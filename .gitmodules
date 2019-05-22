@@ -1,3 +1,6 @@
 [submodule "savina-caf"]
 	path = savina-caf
 	url = https://github.com/woelke/savina.git
+[submodule "savina-jvm"]
+	path = savina-jvm
+	url = https://github.com/shamsimam/savina.git
