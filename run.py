@@ -121,7 +121,7 @@ class HardwareThreading:
     if iCoreId >= 0 and all == False:
       to_disable = [iCoreId]
     elif all == True:
-      to_disable = sorted(self._cpus.keys())[1:]
+      to_disable = sorted(self._cpus.keys())[1:] + list(self._hyperthreads.keys())
 
     for i in to_disable:
       self._cpu_file(i, "0")    

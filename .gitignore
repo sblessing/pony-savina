@@ -1,2 +1,4 @@
 pony-savina
 *.DS_Store
+output
+*.log

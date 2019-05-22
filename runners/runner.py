@@ -25,14 +25,14 @@ class BenchmarkRunner:
 
   def _create_directory(self):
     sPath = "output/" + self._name + "/" + self._timestamp
-    os.mkdirs(sPath, exist_ok=True)
+    os.makedirs(sPath, exist_ok=True)
 
-    return sPath
+    return sPath + "/"
 
   def execute(self):
     sPath = self._create_directory()
 
     for exe in self._executables:
-      with open(sPath + Path(exe).name) as outputfile:
+      with open(sPath + Path(exe).name + ".txt", "w+") as outputfile:
         bench = subprocess.Popen([exe], stdout=outputfile)
         bench.wait()
