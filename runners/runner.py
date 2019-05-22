@@ -14,13 +14,14 @@ class BenchmarkRunner:
   def _get_executables(self, sPath):
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
 
-    for sFilename in os.listdir('./' + sPath):
-      if os.path.isfile(sFilename):
-        st = os.stat(sFilename)
+    for sFilename in os.listdir(sPath):
+      sFilepath = sPath + sFilename if sPath[-1] == "/" else sPath + "/" + sFilename
+      
+      if os.path.isfile(sFilepath):
+        st = os.stat(sFilepath)
         mode = st.st_mode
         if mode & executable:
-            sFullpath = sPath + sFilename if sPath[-1] == "/" else sPath + "/" + sFilename
-            self._executables.append(sFullpath)
+            self._executables.append(sFilepath)
 
   def _create_directory(self):
     sPath = "output/" + self._name + "/" + self._timestamp
