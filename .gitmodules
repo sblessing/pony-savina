@@ -1,0 +1,3 @@
+[submodule "savina-caf"]
+	path = savina-caf
+	url = https://github.com/woelke/savina.git

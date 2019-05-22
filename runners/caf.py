@@ -1,2 +1,4 @@
+from runners import runner
+
 def run():
-  print("CAF!")
+  runner.BenchmarkRunner("savina-caf/build/bin/").execute()

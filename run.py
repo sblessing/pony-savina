@@ -142,7 +142,7 @@ def main():
   parser.add_argument('-r', "--run", dest='module', action='append')
   args = parser.parse_args()
 
-  modules = [importlib.import_module("runners/" + i) for i in args.module]
+  modules = [importlib.import_module("." + i, package="runners") for i in args.module]
 
   with HardwareThreading(args.hyperthreads) as cores:
     cores.disable(all = True)
