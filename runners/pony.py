@@ -1,2 +1,2 @@
-def run():
+def run(cores):
   print("Pony!")

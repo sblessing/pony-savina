@@ -1,4 +1,6 @@
 from runners import runner
 
-def run():
-  runner.BenchmarkRunner("caf", "savina-caf/build/bin/").execute()
+def run(cores):
+  oRunner = runner.BenchmarkRunner(runner.ExecutableRunner).instance()
+  oRunner.initialize("caf", "savina-caf/build/bin")
+  oRunner.execute(cores)

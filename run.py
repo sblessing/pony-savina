@@ -151,6 +151,6 @@ def main():
       cores.enable(core)
 
       for module in modules:
-        module.run()
+        module.run(core + 1)
 
 if __name__ == "__main__": main()
