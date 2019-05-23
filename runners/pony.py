@@ -1,2 +1,2 @@
-def run(cores):
+def setup(oBenchmarkRunner):
   print("Pony!")

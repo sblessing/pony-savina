@@ -2,3 +2,4 @@ pony-savina
 *.DS_Store
 output
 *.log
+runners/__pycache__

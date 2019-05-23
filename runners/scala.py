@@ -1,4 +1,2 @@
-from runners import runner
-
-def run(cores):
+def setup(oBenchmarkRunner):
   print("Scala!")
