@@ -1,7 +1,8 @@
 #!/bin/bash
 CREATED=()
 HTML=()
-LAST=${@: -1}
+FORMAT=${@: -1}
+TYPE=${@: -2:1}
 
 hasmemory=false
 
@@ -18,6 +19,36 @@ read -r -d '' ROW << EOM
     __THUMBNAIL__2
   </div>
 EOM
+
+function float_eval {
+  local stat=0
+  local result=0.0
+  
+  if [[ $# -gt 0 ]]; then
+    result=$(echo "scale=3; $*" | bc -l -q 2>/dev/null)
+    result=$(printf '%.3f\n' ${result})
+    stat=$?
+    
+    if [[ $stat -eq 0  &&  -z "$result" ]]; then stat=1; fi
+  fi
+  
+  echo $result
+  return $stat
+}
+
+function median {
+  PARAM=("$@")
+  LENGTH=${#PARAM[@]}
+  MIDDLE=$((${LENGTH}/2))
+  IS_EVEN=$((${LENGTH}%2))
+
+  if [ "${IS_EVEN}" = "0" ]; then
+    MEDIAN_RESULT=${PARAM[$MIDDLE]}
+  else
+    EXPR="( ${PARAM[MIDDLE-1]} + ${PARAM[MIDDLE]} ) / 2"
+    MEDIAN_RESULT=$(float_eval "$EXPR")
+  fi
+}
 
 function cleanup {
   FILES=("$@")
@@ -44,6 +75,27 @@ function produce_plot {
   PARAM=("$@")
   length=${#PARAM[@]}
 
+  CORE_VALUES=()
+
+  for data in "${PARAM[@]}"; do
+    NAME=$(echo ${data} | cut -d ":" -f 1)
+    BENCH=$(echo ${data} | cut -d ":" -f 2 | cut -d "_" -f 2)
+
+    while IFS= read -r var
+    do
+      arrIn=${var//,/ }
+      i=${arrIn[0]}
+
+      if [[ -v "CORE_VALUES[${i}]" ]]; then
+        CORE_VALUES[$i]=()
+      fi
+
+      CORE_VALUES[$i]+=arrIn[1]
+    done < <(sort -t, -k1 -n "plot_${NAME}.txt")
+  done
+
+  echo ${CORE_VALUES[@]}
+
   for plot in "${PARAM[@]}"; do
     NAME=$(echo ${plot} | cut -d ":" -f 1)
     TITLE=$(echo ${plot} | cut -d ":" -f 2)
@@ -56,6 +108,14 @@ function produce_plot {
     tech ${NAME}
 
     COLOR=$(cat plot_config.json | jq -r ".\"colors\"" | jq -r ".\"${TECH}\"")
+    COLOR_COMMAND=""
+
+    if [ $TYPE = "points" ]; then
+      COLOR_COMMAND="lc rgb \"${COLOR}\" pt 0"
+    elif [ $TYPE = "lines" ]; then
+      COLOR_COMMAND="rgb \"${COLOR}\" lw 2"
+    fi
+
     VERSION=$(cat plot_config.json | jq -r ".\"versions\"" | jq -r ".\"${TECH}\"")
 
     if (($length > 1)); then
@@ -86,8 +146,8 @@ function produce_plot {
       fi
     fi
   
-    echo "set terminal ${LAST}" >> ${OUT}
-    echo "set output \"output/${TARGET}/${OUTPUT}.${LAST}\"" >> ${OUT}
+    echo "set terminal ${FORMAT}" >> ${OUT}
+    echo "set output \"output/${TARGET}/${OUTPUT}.${FORMAT}\"" >> ${OUT}
 
     if [ "$hasmemory" = true ]; then
 		  echo "set hidden3d" >> ${OUT}
@@ -114,9 +174,9 @@ function produce_plot {
 
     if (($length > 1)); then
       if [ "$hasmemory" = true ]; then
-        echo "splot 'gnuplot_${NAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 1,\\" >> ${OUT}
+        echo "splot 'gnuplot_${NAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' rgb \"${COLOR}\" lw 1,\\" >> ${OUT}
       else
-        echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2,\\" >> ${OUT}
+        echo "plot 'gnuplot_${NAME}.txt' using 1:2 with ${TYPE} title '${TECH} ${VERSION}' ${COLOR_COMMAND},\\" >> ${OUT}
       fi
 
       for next in "${PARAM[@]:1}"; do
@@ -124,14 +184,21 @@ function produce_plot {
         tech ${OTHERNAME}
 
         COLOR=$(cat plot_config.json | jq -r ".\"colors\"" | jq -r ".\"${TECH}\"")
+
+        if [ $TYPE = "points" ]; then
+          COLOR_COMMAND="lc rgb \"${COLOR}\" pt 0"
+        elif [ $TYPE = "lines" ]; then
+          COLOR_COMMAND="rgb \"${COLOR}\" lw 2"
+        fi
+
         VERSION=$(cat plot_config.json | jq -r ".\"versions\"" | jq -r ".\"${TECH}\"")
 
         eval "cat plot_${OTHERNAME}.txt | sort -t, -k1 -n > gnuplot_${OTHERNAME}.txt"
 
         if [ "$hasmemory" = true ]; then
-          echo "'gnuplot_${OTHERNAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 1,\\" >> ${OUT}
+          echo "'gnuplot_${OTHERNAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' rgb \"${COLOR}\" lw 1,\\" >> ${OUT}
         else
-          echo "'gnuplot_${OTHERNAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2,\\" >> ${OUT}
+          echo "'gnuplot_${OTHERNAME}.txt' using 1:2 with ${TYPE} title '${TECH} ${VERSION}' ${COLOR_COMMAND},\\" >> ${OUT}
         fi
 
         #We might have already plotted this in a non-combined run.
@@ -141,9 +208,9 @@ function produce_plot {
       done
     else
       if [ "$hasmemory" = true ]; then
-        echo "splot 'gnuplot_${NAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 1" >> ${OUT}
+        echo "splot 'gnuplot_${NAME}.txt' using 1:2:5 with lines title '${TECH} ${VERSION}' rgb \"${COLOR}\" lw 1" >> ${OUT}
       else
-        echo "plot 'gnuplot_${NAME}.txt' using 1:2 with lines title '${TECH} ${VERSION}' lt rgb \"${COLOR}\" lw 2" >> ${OUT}
+        echo "plot 'gnuplot_${NAME}.txt' using 1:2 with ${TYPE} title '${TECH} ${VERSION}' ${COLOR_COMMAND}" >> ${OUT}
       fi
     fi
 
@@ -190,7 +257,7 @@ if [ "$#" -gt 2 ]; then
   combined=true
 fi
 
-for folder in ${ARGS[@]::${#ARGS[@]}-1}; do
+for folder in ${ARGS[@]::${#ARGS[@]}-2}; do
   FILES=${folder}/**/*.txt
 
   for benchmark in $FILES; do

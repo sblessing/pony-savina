@@ -180,9 +180,8 @@ class BenchmarkRunner:
 
     for (exe, output) in iter(self):
       with open(sPath + output + ".txt", "w+") as outputfile:
-        None
-        #bench = subprocess.Popen([exe], stdout=outputfile)
-        #bench.wait()
+        bench = subprocess.Popen([exe], stdout=outputfile)
+        bench.wait()
 
 def main():
   if os.geteuid() != 0:
