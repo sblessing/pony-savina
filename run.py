@@ -3,6 +3,9 @@ import re
 import os
 import subprocess
 import importlib
+import stat
+import datetime
+from pathlib import Path 
 
 class HardwareThreading:
   def _detect_cpus(self):
@@ -128,21 +131,16 @@ class HardwareThreading:
 
   def enable(self, iCoreId):
     if iCoreId > 0:
-      self._cpu_file(iCoreId, "1")  
-
-import stat
-import subprocess
-import datetime
-from pathlib import Path  
+      self._cpu_file(iCoreId, "1")   
 
 # java -cp Executable
-# pony-savina -l -> [...] -> pony-savina -b=<list-item>
 
 class BenchmarkRunner:
   def __init__(self):
     self._name = None
     self._timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
     self._executables = []
+    self._args = []
     self._iterator = iter(self._executables)
   
   def _get_executables(self, sPath):
@@ -171,8 +169,9 @@ class BenchmarkRunner:
 
     return sPath + "/"
 
-  def configure(self, sName, sPath):
+  def configure(self, sName, sPath, aArgs = []):
     self._name = sName
+    self._args = aArgs
     self._get_executables(sPath)
 
   def execute(self, cores):
@@ -180,7 +179,7 @@ class BenchmarkRunner:
 
     for (exe, output) in iter(self):
       with open(sPath + output + ".txt", "w+") as outputfile:
-        bench = subprocess.Popen([exe], stdout=outputfile)
+        bench = subprocess.Popen([exe] + self._args, stdout=outputfile)
         bench.wait()
 
 def main():
@@ -206,7 +205,8 @@ def main():
       cores.enable(core)
 
       for module in modules:
-        module.setup(runner)
-        runner.execute(core + 1)
+        core_count = core + 1
+        module.setup(runner, core_count)
+        runner.execute(core_count)
 
 if __name__ == "__main__": main()

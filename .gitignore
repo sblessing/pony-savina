@@ -3,3 +3,4 @@ pony-savina
 output
 *.log
 runners/__pycache__
+savina-pony/build
