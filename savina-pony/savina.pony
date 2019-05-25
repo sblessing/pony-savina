@@ -1,4 +1,6 @@
 use "cli"
+use "collections"
+use "./util"
 
 use banking = "concurrency/banking"
 use barber = "concurrency/barber"
@@ -33,11 +35,58 @@ use "parallel/sieve"
 use trapezoid = "parallel/trapezoid"
 use "parallel/uct"
 
-interface Configurable
+actor Main is BenchmarkRunner
+  new create(env: Env) =>
+    Savina(env, this)
+
+  fun tag benchmarks(bench: Savina) =>
+    //bench(10, banking.Banking(1000, 50000))
+    bench(10, barber.SleepingBarber(5000, 1000, 1000, 1000))
+    //bench(bndbuffer.BndBuffer)
+    //bench(Cigsmok)
+    //bench(Concdict)
+    //bench(concsll.Concsll)
+    //bench(Logmap)
+    //bench(DiningPhilosophers)
+    //bench(Big)
+    //bench(Chameneos)
+    //bench(Count)
+    //bench(Fib)
+    //bench(Fjcreate)
+    //bench(Fjthrput)
+    //bench(PingPong)
+    //bench(ThreadRing)
+    ////bench(Apsp)
+    ////bench(Astar)
+    ////bench(Bitonicsort)
+    ////bench(Facloc)
+    //bench(filterbank.Filterbank)
+    ////bench(Nqueenk)
+    ////bench(pi.Piprecision)
+    //bench(quicksort.Quicksort)
+    //bench(radixsort.RadixSort)
+    //bench(recmatmul.Recmatmul)
+    //bench(Sieve)
+    ////bench(Sor)
+    //bench(trapezoid.Trapezoid)
+    //bench(Uct)
+
+
+
+
+
+/*interface Configurable
   fun val apply(): CommandSpec iso^ ?
 
-interface BenchmarkRunner
-  new run(args: Command val, env: Env)
+interface Benchmark
+  new setup(args: Command val)
+  be run(env: Env)
+
+actor BenchmarkRunner
+  new create(benchmark: Benchmark, env: Env, iterations: U64) =>
+    for i in Range[U64](0, iterations) do
+      benchmark.run(env) // wait until first iteration is done
+    end
 
 actor Main
   new create(env: Env) =>
@@ -63,6 +112,11 @@ actor Main
                 "list",
                 "List the names of available benchmarks, to be used as runner arguments"
                 where short' = 'l', default' = false
+              )
+              OptionSpec.u64(
+                "iterations",
+                "The number of iterations to be executed. Defaults to 12."
+                where short' = 'i', default' = 12
               )
             ]
           )?
@@ -102,40 +156,44 @@ actor Main
         env.out.print("Trapezoid")
         env.out.print("Uct")
       else
-        match command.option("benchmark").string()
-        | "Banking" => banking.Banking.run(parse(banking.BankingConfig() ?, env) ?, env)
-        | "Barber"  => barber.SleepingBarber.run(parse(barber.BarberConfig() ?, env) ?, env)
-        | "BndBuffer" => bndbuffer.BndBuffer.run(parse(bndbuffer.BndBufferConfig() ?, env) ?, env)
-        | "Cigsmok" => Cigsmok.run(parse(CigsmokConfig() ?, env) ?, env)
-        | "Concdict" => Concdict.run(parse(ConcdictConfig() ?, env) ?, env)
-        | "Concsll" => concsll.Concsll.run(parse(concsll.ConcsllConfig() ?, env) ?, env)
-        | "Logmap" => Logmap.run(parse(LogmapConfig() ?, env) ?, env)
-        | "Philosopher" => DiningPhilosophers.run(parse(PhilosopherConfig() ?, env) ?, env)
-        | "Big"     => Big.run(parse(BigConfig() ?, env) ?, env)
-        | "Chameneos" => Chameneos.run(parse(ChameneosConfig() ?, env) ?, env)
-        | "Count" => Count.run(parse(CountConfig() ?, env) ?, env)
-        | "Fib"     => Fib.run(parse(FibConfig() ?, env) ?, env)
-        | "Fjcreate" => Fjcreate.run(parse(FjcreateConfig() ?, env) ?, env)
-        | "Fjthrput" => Fjthrput.run(parse(FjthrputConfig() ?, env) ?, env)
-        | "PingPong" => PingPong.run(parse(PingPongConfig() ?, env) ?, env)
-        | "Threadring" => ThreadRing.run(parse(ThreadRingConfig() ?, env) ?, env)
-        //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
-        //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
-        //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
-        //| "Facloc" => facloc.Facloc.run(parse(facloc.FaclocConfig() ?, env) ?, env)				
-        | "Filterbank"   => filterbank.Filterbank.run(parse(filterbank.FilterbankConfig() ?, env) ?, env)
-        //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
-        //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
-        | "Quicksort" => quicksort.Quicksort.run(parse(quicksort.QuicksortConfig() ?, env) ?, env)
-        | "Radixsort" => radixsort.Radixsort.run(parse(radixsort.RadixsortConfig() ?, env) ?, env)
-        | "Recmatmul" => recmatmul.Recmatmul.run(parse(recmatmul.RecmatmulConfig() ?, env) ?, env)
-        | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
-        //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
-        | "Trapezoid" => trapezoid.Trapezoid.run(parse(trapezoid.TrapezoidConfig() ?, env) ?, env)
-        | "Uct" => Uct.run(parse(UctConfig() ?, env) ?, env)
-        else
-          error
-        end
+        BenchmarkRunner(
+          match command.option("benchmark").string()
+          | "Banking" => banking.Banking.setup(parse(banking.BankingConfig() ?, env) ?)
+          | "Barber"  => barber.SleepingBarber.setup(parse(barber.BarberConfig() ?, env) ?)
+          | "BndBuffer" => bndbuffer.BndBuffer.setup(parse(bndbuffer.BndBufferConfig() ?, env) ?)
+          | "Cigsmok" => Cigsmok.setup(parse(CigsmokConfig() ?, env) ?)
+          | "Concdict" => Concdict.setup(parse(ConcdictConfig() ?, env) ?)
+          | "Concsll" => concsll.Concsll.setup(parse(concsll.ConcsllConfig() ?, env) ?)
+          | "Logmap" => Logmap.setup(parse(LogmapConfig() ?, env) ?)
+          | "Philosopher" => DiningPhilosophers.setup(parse(PhilosopherConfig() ?, env) ?)
+          | "Big"     => Big.setup(parse(BigConfig() ?, env) ?)
+          | "Chameneos" => Chameneos.setup(parse(ChameneosConfig() ?, env) ?)
+          | "Count" => Count.setup(parse(CountConfig() ?, env) ?)
+          | "Fib"     => Fib.setup(parse(FibConfig() ?, env) ?)
+          | "Fjcreate" => Fjcreate.setup(parse(FjcreateConfig() ?, env) ?)
+          | "Fjthrput" => Fjthrput.setup(parse(FjthrputConfig() ?, env) ?)
+          | "PingPong" => PingPong.setup(parse(PingPongConfig() ?, env) ?)
+          | "Threadring" => ThreadRing.setup(parse(ThreadRingConfig() ?, env) ?)
+          //| "Apsp"    => Apsp.run(parse(ApspConfig() ?, env) ?, env)
+          //| "Astar"   => Astar.run(parse(AstarConfig() ?, env) ?, env)
+          //| "Bitonicsort" => Bitonicsort.run(parse(BitonicsortConfig() ?, env) ?, env)
+          //| "Facloc" => facloc.Facloc.run(parse(facloc.FaclocConfig() ?, env) ?, env)				
+          | "Filterbank"   => filterbank.Filterbank.setup(parse(filterbank.FilterbankConfig() ?, env) ?)
+          //| "Nqueenk" => nqueenk.Nqueenk.run(parse(nqueenk.NqueenkConfig() ?, env) ?, env)
+          //| "Piprecision" => pi.Piprecision.run(parse(pi.PiprecisionConfig() ?, env) ?, env)
+          | "Quicksort" => quicksort.Quicksort.setup(parse(quicksort.QuicksortConfig() ?, env) ?)
+          | "Radixsort" => radixsort.Radixsort.setup(parse(radixsort.RadixsortConfig() ?, env) ?)
+          | "Recmatmul" => recmatmul.Recmatmul.setup(parse(recmatmul.RecmatmulConfig() ?, env) ?)
+          | "Sieve" => Sieve.run(parse(SieveConfig() ?, env) ?, env)
+          //| "Sor" => Sor.run(parse(SorConfig() ?, env) ?, env)
+          | "Trapezoid" => trapezoid.Trapezoid.setup(parse(trapezoid.TrapezoidConfig() ?, env) ?)
+          | "Uct" => Uct.setup(parse(UctConfig() ?, env) ?)
+          else
+            error
+          end,
+          env
+          command.options("iterations").u64()
+        )
       end
     end
     
@@ -146,4 +204,4 @@ actor Main
         | let help: CommandHelp => help.print_help(env.out) ; env.exitcode(0) ; error
         | let syntax: SyntaxError => env.out.print(syntax.string()) ; env.exitcode(1) ; error
         end
-      end
+      end*/

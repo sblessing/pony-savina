@@ -2,8 +2,9 @@ use "cli"
 use "random"
 use "collections"
 use "time"
+use "../../util"
 
-primitive BarberConfig
+/*primitive BarberConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("barber", "", [
@@ -28,7 +29,7 @@ primitive BarberConfig
           where short' = 'c', default' = 1000
         )
       ]) ?
-    end
+    end*/
 
 primitive BusyWaiter
   fun val apply(wait: U64): U32 =>
@@ -41,16 +42,30 @@ primitive BusyWaiter
 
     test
 
-actor SleepingBarber
-  new run(args: Command val, env: Env) =>
+class iso SleepingBarber is AsyncActorBenchmark
+  let _haircuts: U64
+  let _room: U64
+  let _production: U64
+  let _cut: U64
+
+  new iso create(haircuts: U64, room: U64, production: U64, cut: U64) =>
+    _haircuts = haircuts
+    _room = room
+    _production = production
+    _cut = cut
+
+  fun box apply(c: AsyncBenchmarkCompletion) => 
     CustomerFactory.serve(
-      args.option("haircuts").u64(),
-      args.option("production").u64(),
+      c,
+      _haircuts,
+      _production,
       WaitingRoom(
-        args.option("room").u64(), 
-        Barber(args.option("cut").u64())
+        _room, 
+        Barber(_cut)
       )
-    )
+    )   
+
+  fun tag name(): String => "Sleeping Barber" 
 
 actor WaitingRoom
   var _size: U64
@@ -102,12 +117,14 @@ actor Barber
     None
 
 actor CustomerFactory
+  let _bench: AsyncBenchmarkCompletion
   var _number_of_haircuts: U64 
   var _attempts: U64
   var _room: WaitingRoom
 
-  new serve(haircuts: U64, rate: U64, room: WaitingRoom) =>
-    _number_of_haircuts = 0
+  new serve(c: AsyncBenchmarkCompletion, haircuts: U64, rate: U64, room: WaitingRoom) =>
+    _bench = c
+    _number_of_haircuts = haircuts
     _attempts = 0
     _room = room
 
@@ -122,7 +139,11 @@ actor CustomerFactory
     _room.enter(customer)
 
   be left(customer: Customer) =>
-    _number_of_haircuts = _number_of_haircuts + 1
+    _number_of_haircuts = _number_of_haircuts - 1
+
+    if _number_of_haircuts == 0 then
+      _bench.complete()
+    end
 
 actor Customer
   var _factory: CustomerFactory

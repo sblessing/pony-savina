@@ -2,8 +2,9 @@ use "cli"
 use "collections"
 use "random"
 use "time"
+use "../../util"
 
-primitive BankingConfig
+/*primitive BankingConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover 
       CommandSpec.leaf("banking", "", [
@@ -18,27 +19,32 @@ primitive BankingConfig
           where short' = 't', default' = 50000
         )
       ]) ?
-    end
+    end*/
 
-actor Banking
+class iso Banking is AsyncActorBenchmark
   var _accounts: U64
   var _transactions: U64
   var _initial: F64
 
-  new run(args: Command val, env: Env) =>
-    _accounts = args.option("accounts").u64()
-    _transactions = args.option("transactions").u64()
+  new iso create(accounts: U64, transactions: U64 /*args: Command val, env: Env*/) =>
+    _accounts = accounts //args.option("accounts").u64()
+    _transactions = transactions //args.option("transactions").u64()
     _initial = F64.max_value() / ( _accounts * _transactions ).f64()
 
-    Teller(_initial, _accounts, _transactions)
+  fun box apply(c: AsyncBenchmarkCompletion) => 
+    Teller(c, _initial, _accounts, _transactions)
+
+  fun tag name(): String => "Banking"
 
 actor Teller
+  let _bench: AsyncBenchmarkCompletion
   let _initial_balance: F64
   let _transactions: U64
   var _completed: U64
   var _accounts: Array[Account]
  
-  new create(initial_balance: F64, accounts: U64, transactions: U64) =>
+  new create(bench: AsyncBenchmarkCompletion, initial_balance: F64, accounts: U64, transactions: U64) =>
+    _bench = bench
     _initial_balance = initial_balance
     _transactions = transactions
     _completed = 0
@@ -64,6 +70,10 @@ actor Teller
 
   be reply() =>
     _completed = _completed + 1
+
+    if _completed == _transactions then
+      _bench.complete()
+    end
 
 class DebitMessage
   let _account: Account
