@@ -2,8 +2,9 @@ use "cli"
 use "collections"
 use "random"
 use "time"
+use "../../util"
 
-primitive CigsmokConfig
+/*primitive CigsmokConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("cigsmok", "", [
@@ -18,17 +19,30 @@ primitive CigsmokConfig
           where short' = 's', default' = 200
         )
       ]) ?
-    end
+    end*/
 
-actor Cigsmok
-  new run(args: Command val, env: Env) =>
-    Arbiter(args.option("rounds").u64(), args.option("smokers").u64())
+class iso Cigsmok is AsyncActorBenchmark
+  let _rounds: U64
+  let _smokers: U64
+
+  new iso create(rounds: U64, smokers: U64) =>
+    _rounds = rounds
+    _smokers = smokers
+
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    Arbiter(c, _rounds, _smokers)
+
+  fun tag name(): String => "Cigarette Smokers"
 
 actor Arbiter
+  let _bench: AsyncBenchmarkCompletion
+  let _random: SimpleRand
   var _smokers: Array[Smoker]
   var _rounds: U64
 
-  new create(rounds: U64, smokers: U64) =>
+  new create(c: AsyncBenchmarkCompletion, rounds: U64, smokers: U64) =>
+    _bench = c
+    _random = SimpleRand(rounds * smokers)
     _smokers = Array[Smoker](smokers.usize())
     _rounds = rounds
 
@@ -41,11 +55,13 @@ actor Arbiter
   be started() =>
     if ( _rounds = _rounds - 1 ) > 1 then
       notifySmoker()
+    else
+      _bench.complete()
     end
 
   fun ref notifySmoker() =>
-    let index = Rand(Time.now()._2.u64()).next().abs().usize() % _smokers.size()
-    try _smokers(index)?.smoke(Rand(Time.now()._2.u64()).int(1000) + 10) end
+    let index = _random.nextInt().usize() % _smokers.size()
+    try _smokers(index)?.smoke((_random.nextInt(where max = 1000) + 10).u64()) end
 
 actor Smoker
   let _arbiter: Arbiter

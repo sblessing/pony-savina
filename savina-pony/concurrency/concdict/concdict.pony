@@ -2,8 +2,9 @@ use "cli"
 use "collections"
 use "random"
 use "time"
+use "../../util"
 
-primitive ConcdictConfig
+/*primitive ConcdictConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("concdict", "", [
@@ -23,33 +24,58 @@ primitive ConcdictConfig
           where short' = 'p', default' = 10
         )
       ]) ?
-    end
+    end*/
 
-actor Concdict
-  new run(args: Command val, env: Env) =>
+class iso Concdict is AsyncActorBenchmark
+  let _workers: U64
+  let _messages: U64
+  let _percentage: U64
+
+  new iso create(workers: U64, messages: U64, percentage: U64) =>
+    _workers = workers
+    _messages = messages
+    _percentage = percentage
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     Master(
-      args.option("workers").u64(), 
-      args.option("messages").u64(),
-      args.option("percentage").u64()
+      c,
+      _workers,
+      _messages,
+      _percentage
     )
 
+  fun tag name(): String => "Concurrent Dictionary"
+
 actor Master
-  new create(workers: U64, messages: U64, percentage: U64) =>
+  let _bench: AsyncBenchmarkCompletion
+  var _workers: U64
+
+  new create(c: AsyncBenchmarkCompletion, workers: U64, messages: U64, percentage: U64) =>
+    _bench = c
+    _workers = workers
+
     let dictionary = Dictionary
 
     for i in Range[U64](0, workers) do
       Worker(this, dictionary, messages, percentage).work()
     end
-
+  
+  be done() =>
+    if (_workers = _workers - 1) == 1 then
+      _bench.complete()
+    end
+    
 actor Worker
-  var _messages: U64
+  let _master: Master
   let _percentage: U64
   let _dictionary: Dictionary
+  var _messages: U64
 
   new create(master: Master, dictionary: Dictionary, messages: U64, percentage: U64) =>
-    _messages = messages
+    _master = master
     _percentage = percentage
     _dictionary = dictionary
+    _messages = messages
 
   be work(value: U64 = 0) =>
     if (_messages = _messages - 1) >= 1 then
@@ -61,7 +87,9 @@ actor Worker
       else
         _dictionary.read(this, value')
       end
-    end    
+    else
+      _master.done()
+    end  
 
 actor Dictionary
   var _map: HashMap[U64, U64, HashEq[U64]]

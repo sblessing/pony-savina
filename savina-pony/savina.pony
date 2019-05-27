@@ -40,11 +40,11 @@ actor Main is BenchmarkRunner
     Savina(env, this)
 
   fun tag benchmarks(bench: Savina) =>
-    bench(10, banking.Banking(1000, 50000))
-    bench(10, barber.SleepingBarber(5000, 1000, 1000, 1000))
-    bench(10, bndbuffer.BndBuffer(50, 40, 40, 1000, 25, 25))
-    //bench(Cigsmok)
-    //bench(Concdict)
+    bench(12, banking.Banking(1000, 50000))
+    bench(12, barber.SleepingBarber(5000, 1000, 1000, 1000))
+    bench(12, bndbuffer.BndBuffer(50, 40, 40, 1000, 25, 25))
+    bench(12, Cigsmok(1000, 200))
+    bench(12, Concdict(20, 10000, 10))
     //bench(concsll.Concsll)
     //bench(Logmap)
     //bench(DiningPhilosophers)

@@ -58,8 +58,8 @@ actor Teller
 
     for i in Range[U64](0, _transactions) do
       // Randomly pick source and destination account
-      let source = _random.nextMax((_accounts.size().u32() / 10) * 8)
-      var dest = _random.nextMax(_accounts.size().u32() - source)
+      let source = _random.nextInt(where max = (_accounts.size().u32() / 10) * 8)
+      var dest = _random.nextInt(where max = _accounts.size().u32() - source)
 
       if dest == 0 then
         dest = dest + 1

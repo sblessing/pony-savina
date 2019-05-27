@@ -13,12 +13,13 @@ class SimpleRand is Random
     _value = ((_value * 1309) + 13849) and 65535
     _value
   
-  fun ref nextInt(): U32 =>
-    nextLong().u32()
+  fun ref nextInt(max: U32 = 0): U32 =>
+    if max == 0 then
+      nextLong().u32()
+    else
+      nextLong().u32() % max
+    end
   
-  fun ref nextMax(max: U32): U32 =>
-    nextInt() % max
-
   fun ref nextDouble(): F64 =>
     1.0 / (nextLong() + 1).f64()
 
