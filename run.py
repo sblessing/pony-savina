@@ -141,9 +141,10 @@ class BenchmarkRunner:
     self._timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
     self._executables = []
     self._args = []
-    self._iterator = iter(self._executables)
   
   def _get_executables(self, sPath):
+    executables = []
+
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
 
     if not os.path.isfile(sPath):
@@ -152,16 +153,11 @@ class BenchmarkRunner:
       
         if os.path.isfile(sFilepath):
           if os.stat(sFilepath).st_mode & executable:
-            self._executables.append(sFilepath)
+            executables.append(sFilepath)
     else:
-      self._executables.append(sPath)
-
-  def __iter__(self):
-    return self
-
-  def __next__(self):
-    sPath = next(self._iterator)
-    return (sPath,Path(sPath).name)
+      executables.append(sPath)
+    
+    return executables
 
   def _create_directory(self, cores):
     sPath = "output/" + self._timestamp + "/" + self._name + "/" + str(cores)
@@ -172,13 +168,13 @@ class BenchmarkRunner:
   def configure(self, sName, sPath, aArgs = []):
     self._name = sName
     self._args = aArgs
-    self._get_executables(sPath)
+    self._executables = self._get_executables(sPath)    
 
   def execute(self, cores):
     sPath = self._create_directory(cores)
 
-    for (exe, output) in iter(self):
-      with open(sPath + output + ".txt", "w+") as outputfile:
+    for exe in iter(self._executables):
+      with open(sPath + Path(exe).name + ".txt", "w+") as outputfile:
         bench = subprocess.Popen([exe] + self._args, stdout=outputfile)
         bench.wait()
 
