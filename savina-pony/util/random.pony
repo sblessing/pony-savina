@@ -16,6 +16,9 @@ class SimpleRand is Random
   fun ref nextInt(): U32 =>
     nextLong().u32()
   
+  fun ref nextMax(max: U32): U32 =>
+    nextInt() % max
+
   fun ref nextDouble(): F64 =>
     1.0 / (nextLong() + 1).f64()
 

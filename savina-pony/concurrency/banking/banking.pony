@@ -40,6 +40,7 @@ actor Teller
   let _bench: AsyncBenchmarkCompletion
   let _initial_balance: F64
   let _transactions: U64
+  let _random: SimpleRand
   var _completed: U64
   var _accounts: Array[Account]
  
@@ -47,6 +48,7 @@ actor Teller
     _bench = bench
     _initial_balance = initial_balance
     _transactions = transactions
+    _random = SimpleRand(123456)
     _completed = 0
     _accounts = Array[Account](accounts.usize())
     
@@ -56,13 +58,17 @@ actor Teller
 
     for i in Range[U64](0, _transactions) do
       // Randomly pick source and destination account
-      let source = Rand(Time.now()._2.u64()).int[U64]((_accounts.size().u64() / 10) * 8)
-      let dest = Rand(Time.now()._2.u64()).int[U64](_accounts.size().u64() - source)
+      let source = _random.nextMax((_accounts.size().u32() / 10) * 8)
+      var dest = _random.nextMax(_accounts.size().u32() - source)
+
+      if dest == 0 then
+        dest = dest + 1
+      end
 
       try
         let source_account = _accounts(source.usize()) ?
         let dest_account = _accounts(source.usize() + dest.usize()) ?
-        let amount = Rand(Time.now()._2.u64()).real() * 1000     
+        let amount = Rand(Time.now()._2.u64()).real() * 1000
 
         source_account.credit(this, amount, dest_account)
       end
@@ -106,22 +112,19 @@ type StashToken is (DebitMessage | CreditMessage)
 class Stash
   let _account: Account
   var _buffer: Array[StashToken]
-
+ 
   new create(account: Account) =>
     _account = account
     _buffer = Array[StashToken]
-
+    
   fun ref stash(token: StashToken) =>
     _buffer.push(token)
 
   fun ref unstash() =>
     try
       while true do
-        let message = _buffer.shift()?
-        message.requeue(_account)
+        _buffer.shift()?.requeue(_account)
       end
-
-      true
     end
 
 actor Account
@@ -140,7 +143,6 @@ actor Account
     if not _stash_mode then
       _balance = _balance + amount
       account.reply(teller)
-      _stash.unstash()
     else
       _stash.stash(DebitMessage(account, teller, amount))
     end
@@ -149,11 +151,10 @@ actor Account
     if not _stash_mode then
       _balance = _balance - amount
       destination.debit(this, teller, amount)
+      _stash_mode = true
     else
       _stash.stash(CreditMessage(destination, teller, amount))
-    end
-
-    _stash_mode = true
+    end  
  
   be reply(teller: Teller) =>
     teller.reply()
