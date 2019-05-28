@@ -2,7 +2,7 @@ use "cli"
 use "collections"
 use "../../util"
 
-primitive ThreadRingConfig
+/*primitive ThreadRingConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("threadring", "", [
@@ -17,7 +17,7 @@ primitive ThreadRingConfig
           where short' = 'r', default' = 100000
         )
       ]) ?
-    end
+    end*/
 
 class iso ThreadRing is AsyncActorBenchmark
   let _actors: U64

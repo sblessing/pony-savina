@@ -55,7 +55,7 @@ actor Main is BenchmarkRunner
     bench(12, Fjcreate(40000))
     bench(12, Fjthrput(10000, 60, 1, true))
     bench(12, PingPong(40000))
-    //bench(ThreadRing)
+    bench(12, ThreadRing(100, 100000))
     ////bench(Apsp)
     ////bench(Astar)
     ////bench(Bitonicsort)
