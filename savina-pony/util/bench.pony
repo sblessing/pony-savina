@@ -29,7 +29,7 @@ class Result
 
     try
       for i in Range[USize](0, _samples.size()) do
-        _samples(i)? = _samples(i)?.f64() / F64(1000000)
+        _samples(i)? = _samples(i)?.f64() / 1000000
       end
     end
 
@@ -37,7 +37,7 @@ class Result
       [ Format(_benchmark where width = 30)
         Format(_mean().string() + " ms" where width = 18, align = AlignRight)
         Format(_median().string() + " ms" where width = 18, align = AlignRight)
-        Format("±" + _stddev().string() + "%" where width = 13, align = AlignRight)
+        Format("±" + _error().string() + " %" where width = 18, align = AlignRight)
       ].values()
     )
   
@@ -56,36 +56,87 @@ class Result
     (_sum() / _samples.size().f64())
 
   fun ref _median(): F64 =>
-    try
-      let len = _samples.size()
-      let i = len / 2
-      if (len % 2) == 1 then
-        _samples(i)?.f64()
-      else
-        (let lo, let hi) = (_samples(i)?, _samples(i + 1)?)
-        ((lo.f64() + hi.f64()) / 2).round()
-      end
-    else
+    let size = _samples.size() 
+
+    if size == 0 then
       0
+    else
+      let middle = size / 2
+
+      try
+        if (size % 2) == 1 then
+          _samples(middle)?
+        else
+          (_samples(middle - 1)? + _samples(middle)?) / 2
+        end
+      else
+        0
+      end
     end
 
-  fun ref _stddev(): F64 =>
-    // sample standard deviation
-    if _samples.size() < 2 then return 0 end
-    try
-      var sum_squares: F64 = 0
-      for i in Range(0, _samples.size()) do
-        let n = _samples(i)?.f64()
-        sum_squares = sum_squares + (n * n)
-      end
-      let avg_squares = sum_squares / _samples.size().f64()
-      let mean' = _mean()
-      let mean_sq = mean' * mean'
-      let len = _samples.size().f64()
-      ((len / (len - 1)) * (avg_squares - mean_sq)).sqrt()
-    else
-      0
+  fun ref _geometric_mean(): F64 =>
+    var result: F64 = 0
+
+    for i in Range[USize](0, _samples.size()) do
+       try result = result + _samples(i)?.log10() end
     end
+    
+
+    F64(10).pow(result / _samples.size().f64())
+
+  fun ref _harmonic_mean(): F64 =>
+    var denom: F64 = 0
+
+    for i in Range[USize](0, _samples.size()) do
+      try denom = denom + ( 1 / _samples(i)?) end
+    end
+
+    _samples.size().f64() / denom
+
+  fun ref _stddev(): F64 =>
+    let mean = _mean()
+    var temp: F64 = 0
+
+    for i in Range[USize](0, _samples.size()) do
+      try 
+        let sample = _samples(i)?
+        temp = temp + ((mean - sample) * (mean - sample))
+      end
+    end
+
+    (temp / _samples.size().f64()).sqrt()
+  
+  fun ref _error(): F64 =>
+    F64(100) * ((_confidence_high() - _mean()) / _mean())
+
+  fun ref _variation(): F64 =>
+   _stddev() / _mean()
+
+  fun ref _confidence_low(): F64 =>
+    _mean() - (F64(1.96) * (_stddev() / _samples.size().f64().sqrt()))
+
+  fun ref _confidence_high(): F64 =>
+    _mean() + (F64(1.96) * (_stddev() / _samples.size().f64().sqrt()))
+
+   fun ref _skewness(): F64 =>
+     let mean = _mean()
+     let sd = _stddev()
+     var sum: F64 = 0
+     var diff: F64 = 0
+
+     if _samples.size() > 0 then
+       for i in Range[USize](0, _samples.size()) do
+         try
+           diff = _samples(i)? - mean
+           sum = sum + (diff * diff * diff)
+         end
+       end
+
+       sum / ((_samples.size().f64() - 1) * sd * sd * sd) 
+     else
+       0
+     end
+
 
 type ResultsMap is MapIs[AsyncActorBenchmark tag, Result]
 
@@ -104,7 +155,7 @@ class OutputManager
         Format("Benchmark" where width = 30)
         Format("mean" where width = 18, align = AlignRight)
         Format("median" where width = 18, align = AlignRight)
-        Format("deviation" where width = 12, align = AlignRight)
+        Format("error" where width = 18, align = AlignRight)
         ANSI.reset()
       ].values()))
 
@@ -127,16 +178,13 @@ class OutputManager
       end
     end
 
-  fun ref summarize() =>
-    try
-      for benchmark in _results.keys() do
-        _print(_results(benchmark)?())
-      end
-    end
-
+  fun ref summarize(benchmark: AsyncActorBenchmark tag) ? =>
+     _print(_results(benchmark)?())
+    
 actor Savina
   let _benchmarks: List[(U64, AsyncActorBenchmark iso)] iso
   let _output: OutputManager iso
+  let _env: Env
   var _start: U64
   var _end: U64
   var _running: Bool
@@ -144,6 +192,7 @@ actor Savina
   new create(env: Env, runner: BenchmarkRunner) =>
     _benchmarks = recover List[(U64, AsyncActorBenchmark iso)] end
     _output = OutputManager(env)
+    _env = env
     _start = 0
     _end = 0
     _running = false
@@ -154,23 +203,22 @@ actor Savina
     if not _running then
       try
         _start = Time.nanos()
-
+    
         recover 
           (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
-  
-          i = i - 1
 
           _output.prepare(run)
+          
           run(this)
    
-          if i > 0 then
+          if (i = i - 1) > 1 then
             _benchmarks.unshift((i, consume run))
+          else
+            _output.summarize(run) ?
           end
         end
 
         _running = true
-      else
-        _output.summarize()
       end
     end
 
@@ -181,5 +229,5 @@ actor Savina
     _next()
 
   be apply(iterations: U64, benchmark: AsyncActorBenchmark iso) =>
-    _benchmarks.unshift((iterations, consume benchmark))
+    _benchmarks.push((iterations, consume benchmark))
     _next()
