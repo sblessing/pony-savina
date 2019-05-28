@@ -37,7 +37,7 @@ class Result
 
     if not _parseable then
       "".join(
-        [ Format(_benchmark where width = 30)
+        [ Format(_benchmark where width = 31)
           Format(_mean().string() + " ms" where width = 18, align = AlignRight)
           Format(_median().string() + " ms" where width = 18, align = AlignRight)
           Format("±" + _error().string() + " %" where width = 18, align = AlignRight)
@@ -163,7 +163,7 @@ class OutputManager
     if not _parseable then
       _print("".join(
         [ ANSI.bold()
-          Format("Benchmark" where width = 30)
+          Format("Benchmark" where width = 31)
           Format("mean" where width = 18, align = AlignRight)
           Format("median" where width = 18, align = AlignRight)
           Format("error" where width = 18, align = AlignRight)
