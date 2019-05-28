@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive FjcreateConfig
+/*primitive FjcreateConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("fjcreate", "", [
@@ -11,25 +12,43 @@ primitive FjcreateConfig
           where short' = 'w', default' = 40000
         )
       ]) ?
-    end
+    end*/
 
 primitive Token
 
-actor Fjcreate
-  new run(args: Command val, env: Env) =>
-    for i in Range[U64](0, args.option("workers").u64()) do
-      ForkJoin(Token)      
+class iso Fjcreate is AsyncActorBenchmark
+  let _workers: U64
+
+  new iso create(workers: U64) =>
+    _workers = workers
+
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    ForkJoinMaster(c, _workers)
+    
+  fun tag name(): String => "Fork-Join Create"
+
+actor ForkJoinMaster
+  let _bench: AsyncBenchmarkCompletion
+  var _workers: U64
+
+  new create(c: AsyncBenchmarkCompletion, workers: U64) =>
+    _bench = c
+    _workers = workers
+
+    for i in Range[U64](0, workers) do
+      ForkJoin(this, Token)      
+    end
+  
+  be done() =>
+    if (_workers = _workers - 1) == 1 then
+      _bench.complete()
     end
 
 actor ForkJoin
-  new create(token: Token) =>
+  new create(master: ForkJoinMaster, token: Token) =>
     let n = F64(37.2).sin()
     let r = n * n
 
-    try
-      if r <= 0 then
-        error //trick dead code elimination, could use DoNotOptimize-builtin
-      end
-    end
+    master.done()
 
     
