@@ -1,28 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive RadixsortConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("radixsort", "", [
-        OptionSpec.u64(
-          "dataset",
-          "The data size. Defaults to 100000."
-          where short' = 'n', default' = 100000
-        )
-        OptionSpec.u64(
-          "max",
-          "The maximum value. Defaults to 1L << 60."
-          where short' = 'm', default' = U64(1 << 60)
-        )
-        OptionSpec.u64(
-          "seed",
-          "The seed for the random number generator. Defaults to 2048."
-          where short' = 's', default' = 2048
-        )
-      ]) ?
-    end*/
 
 type Neighbor is (Validation | Sorter)
 

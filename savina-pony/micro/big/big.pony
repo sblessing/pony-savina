@@ -1,25 +1,6 @@
-use "cli"
 use "collections"
-use "random"
 use "time"
 use "../../util"
-
-/*primitive BigConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("big", "", [
-        OptionSpec.u64(
-          "pings",
-          "The number of pings sent by each actor. Defaults to 20000."
-          where short' = 'p', default' = 20000
-        )
-        OptionSpec.u64(
-          "actors",
-          "The number of actors. Defaults to 120."
-          where short' = 'a', default' = 120
-        )
-      ]) ?
-    end*/
 
 class iso Big is AsyncActorBenchmark
   let _pings: U64

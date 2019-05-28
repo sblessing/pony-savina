@@ -1,35 +1,5 @@
-use "cli"
 use "collections"
-use "random"
-use "time"
 use "../../util"
-
-/*primitive ConcsllConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("concsll", "", [
-        OptionSpec.u64(
-          "workers",
-          "The number of workers. Defaults to 20."
-          where short' = 'w', default' = 20
-        )
-        OptionSpec.u64(
-          "messages",
-          "The number of messages per worker. Defaults to 8000."
-          where short' = 'm', default' = 8000
-        )
-        OptionSpec.u64(
-          "size",
-          "The size percentage threshold. Defaults to 1."
-          where short' = 's', default' = 1
-        )
-        OptionSpec.u64(
-          "write",
-          "The insert percentage threshold. Defaults to 10."
-          where short' = 'p', default' = 10
-        )
-      ]) ?
-    end*/
 
 class iso Concsll is AsyncActorBenchmark
   let _workers: U64

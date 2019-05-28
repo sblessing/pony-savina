@@ -1,34 +1,16 @@
 use "cli"
 use "collections"
-use "random"
 use "time"
 use "../../util"
-
-/*primitive BankingConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover 
-      CommandSpec.leaf("banking", "", [
-        OptionSpec.u64(
-          "accounts",
-          "The number of accounts managed by each teller T. Defaults to 1000."
-          where short' = 'a', default' = 1000
-        )
-        OptionSpec.u64(
-          "transactions",
-          "The number of transactions handeled by each teller X. Defaults to 50000."
-          where short' = 't', default' = 50000
-        )
-      ]) ?
-    end*/
 
 class iso Banking is AsyncActorBenchmark
   var _accounts: U64
   var _transactions: U64
   var _initial: F64
 
-  new iso create(accounts: U64, transactions: U64 /*args: Command val, env: Env*/) =>
-    _accounts = accounts //args.option("accounts").u64()
-    _transactions = transactions //args.option("transactions").u64()
+  new iso create(accounts: U64, transactions: U64) =>
+    _accounts = accounts 
+    _transactions = transactions
     _initial = F64.max_value() / ( _accounts * _transactions ).f64()
 
   fun box apply(c: AsyncBenchmarkCompletion) => 
@@ -68,7 +50,7 @@ actor Teller
       try
         let source_account = _accounts(source.usize()) ?
         let dest_account = _accounts(source.usize() + dest.usize()) ?
-        let amount = Rand(Time.now()._2.u64()).real() * 1000
+        let amount = _random.nextDouble() * 1000
 
         source_account.credit(this, amount, dest_account)
       end

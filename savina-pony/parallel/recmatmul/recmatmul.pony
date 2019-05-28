@@ -1,33 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive RecmatmulConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("recmatmul", "", [
-        OptionSpec.u64(
-          "workers",
-          "The number of workers. Defaults to 20."
-          where short' = 'w', default' = 20
-        )
-        OptionSpec.u64(
-          "length",
-          "The data length. Defaults to 1024."
-          where short' = 'l', default' = 1024
-        )
-        OptionSpec.u64(
-          "threshold",
-          "The block threshold. Defaults to 16384."
-          where short' = 't', default' = 16384
-        )
-        OptionSpec.u64(
-          "priorities",
-          "The priority levels. Defaults to 10. Maximum value is 29."
-          where short' = 'p', default' = 10
-        )
-      ]) ?
-    end*/
 
 class iso Recmatmul is AsyncActorBenchmark
   let _workers: U64

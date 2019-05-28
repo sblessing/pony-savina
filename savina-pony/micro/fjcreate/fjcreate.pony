@@ -1,18 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive FjcreateConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("fjcreate", "", [
-        OptionSpec.u64(
-          "workers",
-          "The total number of actors to create. Defaults to 40000."
-          where short' = 'w', default' = 40000
-        )
-      ]) ?
-    end*/
 
 primitive Token
 

@@ -1,17 +1,4 @@
-use "cli"
 use "../../util"
-
-/*primitive PingPongConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("pingpong", "", [
-        OptionSpec.u64(
-          "pings",
-          "The number of pings. Defaults to 40000."
-          where short' = 'n', default' = 40000
-        )
-      ]) ?
-    end*/
 
 class iso PingPong is AsyncActorBenchmark
   let _pings: U64

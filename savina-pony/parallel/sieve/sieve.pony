@@ -1,23 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive SieveConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("sieve", "", [
-        OptionSpec.u64(
-          "size",
-          "The input size. Defaults to 100000."
-          where short' = 's', default' = 100000
-        )
-        OptionSpec.u64(
-          "buffersize",
-          "The buffer size at each sieve actor. Defaults to 1000."
-          where short' = 'u', default' = 1000
-        )
-      ]) ?
-    end*/
 
 class iso Sieve is AsyncActorBenchmark
   let _size: U64

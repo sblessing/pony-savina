@@ -1,34 +1,5 @@
-use "cli"
 use "collections"
-use "format"
 use "../../util"
-
-/*primitive LogmapConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("logmap", "", [
-        OptionSpec.u64(
-          "terms",
-          "The number of terms. Defaults to 25000."
-          where short' = 't', default' = 25000
-        )
-        OptionSpec.u64(
-          "series",
-          "The number of series. Defaults to 10."
-          where short' = 's', default' = 10
-        )
-        OptionSpec.f64(
-          "rate",
-          "The start rate. Defaults to 3.46."
-          where short' = 'r', default' = 3.46
-        )
-        OptionSpec.f64(
-          "increment",
-          "The increment. Defaults to 0.0025."
-          where short' = 'p', default' = 0.0025
-        )
-      ]) ?
-    end*/
 
 class iso Logmap is AsyncActorBenchmark
   let _terms: U64

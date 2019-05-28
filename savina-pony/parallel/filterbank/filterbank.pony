@@ -1,33 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive FilterbankConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("filterbank", "", [
-        OptionSpec.u64(
-          "columns",
-          "The number of columns. Defaults to 16384."
-          where short' = 'c', default' = 16384
-        )
-        OptionSpec.u64(
-          "simulations",
-          "The number of simulations. Defaults to 34816."
-          where short' = 's', default' = 34816
-        )
-        OptionSpec.u64(
-          "channels",
-          "The number of channels. Defaults to 8."
-          where short' = 'm', default' = 8
-        )
-        OptionSpec.u64(
-          "sinkrate",
-          "The sink print rate. Defauls to 100."
-          where short' = 'r', default' = 100
-        )
-      ]) ?
-    end*/
 
 type Matrix is Array[Array[U64] val] val
 

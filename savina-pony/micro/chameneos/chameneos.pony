@@ -1,23 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive ChameneosConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("chameneos", "", [
-        OptionSpec.u64(
-          "chameneos",
-          "The number of chameneos. Defaults to 100."
-          where short' = 'c', default' = 100
-        )
-        OptionSpec.u64(
-          "meetings",
-          "The number meetings. Defaults to 200000."
-          where short' = 'm', default' = 200000
-        )
-      ]) ?
-    end*/
 
 primitive Red
 primitive Yellow
@@ -62,7 +44,7 @@ class iso Chameneos is AsyncActorBenchmark
   let _meetings: U64
   let _chameneos: U64
 
-  new iso create(meetings: U64, chameneos: U64) =>
+  new iso create(chameneos: U64, meetings: U64) =>
     _meetings = meetings
     _chameneos = chameneos
   

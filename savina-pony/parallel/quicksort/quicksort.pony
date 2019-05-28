@@ -1,33 +1,5 @@
-use "cli"
 use "collections"
 use "../../util/"
-
-/*primitive QuicksortConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("quicksort", "", [
-        OptionSpec.u64(
-          "dataset",
-          "The data size. Defaults to 1000000."
-          where short' = 'n', default' = 1000000
-        )
-        OptionSpec.u64(
-          "max",
-          "The maximum value. Defaults to 1L << 60."
-          where short' = 'm', default' = U64(1 << 60)
-        )
-        OptionSpec.u64(
-          "threshold",
-          "Threshold to perfrom sort sequentially. Defaults to 2048."
-          where short' = 't', default' = 2048
-        )
-        OptionSpec.u64(
-          "seed",
-          "The seed for the random number generator. Defaults to 1024."
-          where short' = 's', default' = 1024
-        )
-      ]) ?
-    end*/
 
 class iso Quicksort is AsyncActorBenchmark
   let _dataset: U64

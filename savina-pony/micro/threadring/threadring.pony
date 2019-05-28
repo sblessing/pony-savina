@@ -1,23 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive ThreadRingConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("threadring", "", [
-        OptionSpec.u64(
-          "actors",
-          "The total number of actors to create. Defaults to 100."
-          where short' = 'n', default' = 100
-        )
-        OptionSpec.u64(
-          "pass",
-          "Number of pass messages. Does not need to be divisible by N. Defaults to 100000."
-          where short' = 'r', default' = 100000
-        )
-      ]) ?
-    end*/
 
 class iso ThreadRing is AsyncActorBenchmark
   let _actors: U64

@@ -1,17 +1,4 @@
-use "cli"
 use "../../util"
-
-/*primitive FibConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("fib", "", [
-        OptionSpec.u64(
-          "index",
-          "The index of the fibonacci number to compute. Defaults to 25."
-          where short' = 'i', default' = 25
-        )
-      ]) ?
-    end*/
 
 class iso Fib is AsyncActorBenchmark
   let _index: U64

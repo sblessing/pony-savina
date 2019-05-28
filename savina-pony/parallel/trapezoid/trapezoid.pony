@@ -1,33 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive TrapezoidConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("trapezoid", "", [
-        OptionSpec.u64(
-          "pieces",
-          "The number of pieces. Defaults to 10000000."
-          where short' = 'p', default' = 10000000
-        )
-        OptionSpec.u64(
-          "workers",
-          "The number of workers. Defaults to 100."
-          where short' = 'w', default' = 100
-        )
-        OptionSpec.u64(
-          "left",
-          "The left-end point. Defaults to 1."
-          where short' = 'x', default' = 1
-        )
-        OptionSpec.u64(
-          "right",
-          "The right-end point. Defaults to 5."
-          where short' = 'y', default' = 5
-        )
-      ]) ?
-    end*/
 
 class iso Trapezoid is AsyncActorBenchmark
   let _pieces: U64

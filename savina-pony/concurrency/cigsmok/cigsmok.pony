@@ -1,25 +1,5 @@
-use "cli"
 use "collections"
-use "random"
-use "time"
 use "../../util"
-
-/*primitive CigsmokConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("cigsmok", "", [
-        OptionSpec.u64(
-          "rounds",
-          "The number of rounds. Defaults to 1000."
-          where short' = 'r', default' = 1000
-        )
-        OptionSpec.u64(
-          "smokers",
-          "The number of smokers. Defaults to 200."
-          where short' = 's', default' = 200
-        )
-      ]) ?
-    end*/
 
 class iso Cigsmok is AsyncActorBenchmark
   let _rounds: U64
@@ -65,9 +45,11 @@ actor Arbiter
 
 actor Smoker
   let _arbiter: Arbiter
+  let _random: SimpleRand
 
   new create(arbiter: Arbiter) =>
     _arbiter = arbiter
+    _random = SimpleRand(1234)
 
   be smoke(period: U64) =>
     _arbiter.started()
@@ -75,6 +57,5 @@ actor Smoker
     var test: U64 = 0
 
     for i in Range[U64](0, period) do
-      Rand(Time.now()._2.u64()).next()
       test = test + 1
     end

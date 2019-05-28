@@ -1,17 +1,4 @@
-use "cli"
 use "../../util"
-
-/*primitive CountConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("count", "", [
-        OptionSpec.u64(
-          "messages",
-          "The number of messages. Defaults to 1000000."
-          where short' = 'n', default' = 1000000
-        )
-      ]) ?
-    end*/
 
 class iso Count is AsyncActorBenchmark
   let _messages: U64

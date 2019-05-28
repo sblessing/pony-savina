@@ -1,44 +1,6 @@
-use "cli"
 use "collections"
 use "random"
 use "../../util"
-
-/*primitive BndBufferConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("bndbuffer", "", [
-        OptionSpec.u64(
-          "buffersize",
-          "The size of the buffer. Defaults to 50."
-          where short' = 's', default' = 50
-        )
-        OptionSpec.u64(
-          "producers",
-          "The number of producers. Defaults to 40."
-          where short' = 'p', default' = 40
-        )
-        OptionSpec.u64(
-          "consumers",
-          "The number of consumers. Defaults to 40."
-          where short' = 'c', default' = 40
-        )
-        OptionSpec.u64(
-          "items",
-          "The number of items per producer. Defaults to 1000."
-          where short' = 'i', default' = 1000
-        )
-        OptionSpec.u64(
-          "producercosts",
-          "Producer costs. Defaults to 25."
-          where short' = 'r', default' = 25
-        )
-        OptionSpec.u64(
-          "consumercosts",
-          "Consumer costs. Defaults to 25."
-          where short' = 'o', default' = 25
-        )
-      ]) ?
-    end*/
 
 class iso BndBuffer is AsyncActorBenchmark
   let _buffersize: U64

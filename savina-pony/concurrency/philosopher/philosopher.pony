@@ -1,28 +1,5 @@
-use "cli"
 use "collections"
 use "../../util"
-
-/*primitive PhilosopherConfig
-  fun val apply(): CommandSpec iso^ ? =>
-    recover
-      CommandSpec.leaf("philosopher", "", [
-        OptionSpec.u64(
-          "philosophers",
-          "The number of philosophers. Defaults to 20."
-          where short' = 'n', default' = 20
-        )
-        OptionSpec.u64(
-          "rounds",
-          "The number of eating rounds. Defaults to 10000."
-          where short' = 'r', default' = 10000
-        )
-        OptionSpec.u64(
-          "channels",
-          "The number of channels. Defaults to 1."
-          where short' = 'c', default' = 1
-        )
-      ]) ?
-    end*/
 
 class iso DiningPhilosophers is AsyncActorBenchmark
   let _philosophers: U64
