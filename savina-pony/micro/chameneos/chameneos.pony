@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive ChameneosConfig
+/*primitive ChameneosConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("chameneos", "", [
@@ -16,7 +17,7 @@ primitive ChameneosConfig
           where short' = 'm', default' = 200000
         )
       ]) ?
-    end
+    end*/
 
 primitive Red
 primitive Yellow
@@ -57,17 +58,30 @@ primitive ColorFactory
       None
     end
 
-actor Chameneos
-  new run(args: Command val, env: Env) =>
-    Mall(args.option("meetings").u64(), args.option("chameneos").u64())
+class iso Chameneos is AsyncActorBenchmark
+  let _meetings: U64
+  let _chameneos: U64
+
+  new iso create(meetings: U64, chameneos: U64) =>
+    _meetings = meetings
+    _chameneos = chameneos
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    Mall(c, _meetings, _chameneos)
+  
+  fun tag name(): String => "Chameneos"
 
 actor Mall
+  let _bench: AsyncBenchmarkCompletion
+  let _chameneos: U64
   var _faded: U64
   var _meetings: U64
   var _sum: U64
   var _waiting: (Chameneo | None)
 
-  new create(meetings': U64, chameneos: U64) =>
+  new create(c:AsyncBenchmarkCompletion, meetings': U64, chameneos: U64) =>
+    _bench = c
+    _chameneos = chameneos
     _faded = 0
     _sum = 0
     _meetings = meetings'
@@ -80,6 +94,10 @@ actor Mall
   be meetings(count: U64) =>
     _faded = _faded + 1
     _sum = _sum + count
+
+    if _faded == _chameneos then
+      _bench.complete()
+    end
   
   be meet(approaching: Chameneo, color: ChameneoColor) =>
     if _meetings > 0 then

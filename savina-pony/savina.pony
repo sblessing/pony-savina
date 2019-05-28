@@ -49,7 +49,7 @@ actor Main is BenchmarkRunner
     bench(12, Logmap(25000, 10, 3.64, 0.0025))
     bench(12, DiningPhilosophers(20, 10000, 1))
     bench(12, Big(20000, 120))
-    //bench(Chameneos)
+    bench(12, Chameneos(100, 200000))
     //bench(Count)
     //bench(Fib)
     //bench(Fjcreate)
