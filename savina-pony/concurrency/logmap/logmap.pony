@@ -1,8 +1,9 @@
 use "cli"
 use "collections"
 use "format"
+use "../../util"
 
-primitive LogmapConfig
+/*primitive LogmapConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("logmap", "", [
@@ -27,33 +28,46 @@ primitive LogmapConfig
           where short' = 'p', default' = 0.0025
         )
       ]) ?
-    end
+    end*/
 
-actor Logmap
-  new run(args: Command val, env: Env) =>
+class iso Logmap is AsyncActorBenchmark
+  let _terms: U64
+  let _series: U64
+  let _rate: F64
+  let _increment: F64
+  
+  new iso create(terms: U64, series: U64, rate: F64, increment: F64) =>
+    _terms = terms
+    _series = series
+    _rate = rate
+    _increment = increment
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     LogmapMaster(
-      args.option("terms").u64(),
-      args.option("series").u64(),
-      args.option("rate").f64(),
-      args.option("increment").f64(),
-      env
+      c,
+      _terms,
+      _series,
+      _rate,
+      _increment
     ).start()
+  
+  fun tag name(): String => "Logistic Map Series"
 
 actor LogmapMaster
+  let _bench: AsyncBenchmarkCompletion
   var _workers: Array[SeriesWorker]
   var _terms: U64
   var _requested: U64
   var _received: U64
   var _sum: F64
-  var _env: Env
 
-  new create(terms: U64, series: U64, rate: F64, increment: F64, env: Env) =>
+  new create(c: AsyncBenchmarkCompletion, terms: U64, series: U64, rate: F64, increment: F64) =>
+    _bench = c
     _workers = Array[SeriesWorker](series.usize())
     _terms = terms
     _requested = 0
     _received = 0
     _sum = 0
-    _env = env
 
     for j in Range[U64](0, series) do
       let start_term = j.f64() * increment
@@ -86,7 +100,7 @@ actor LogmapMaster
     _received = _received + 1
 
     if _received == _requested then
-      _env.out.print("Terms sum: " + Format.float[F64](_sum where prec = 14, fmt = FormatFix))
+      _bench.complete()
     end
 
 primitive NextMessage

@@ -194,14 +194,15 @@ def main():
 
   with HardwareThreading(args.hyperthreads) as cores:
     cores.disable(all = True)
+    core_count = 0
 
     runner = BenchmarkRunner()
 
     for core in cores:
       cores.enable(core)
+      core_count = core_count + 1
 
       for module in modules:
-        core_count = core + 1
         module.setup(runner, core_count)
         runner.execute(core_count)
 

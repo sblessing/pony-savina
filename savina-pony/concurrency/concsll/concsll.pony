@@ -2,8 +2,9 @@ use "cli"
 use "collections"
 use "random"
 use "time"
+use "../../util"
 
-primitive ConcsllConfig
+/*primitive ConcsllConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("concsll", "", [
@@ -28,36 +29,65 @@ primitive ConcsllConfig
           where short' = 'p', default' = 10
         )
       ]) ?
-    end
+    end*/
 
-actor Concsll
-  new run(args: Command val, env: Env) =>
+class iso Concsll is AsyncActorBenchmark
+  let _workers: U64
+  let _messages: U64
+  let _size: U64
+  let _write: U64
+
+  new iso create(workers: U64, messages: U64, size: U64, write: U64) =>
+    _workers = workers
+    _messages = messages
+    _size = size
+    _write = write
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     Master(
-      args.option("workers").u64(),
-      args.option("messages").u64(),
-      args.option("size").u64(),
-      args.option("write").u64()
+      c,
+      _workers,
+      _messages,
+      _size,
+      _write
     )
+  
+  fun tag name(): String => "Concurrent Sorted Linked-List"
 
 actor Master
-  new create(workers: U64, messages: U64, size: U64, write: U64) =>
+  let _bench: AsyncBenchmarkCompletion
+  var _workers: U64
+
+  new create(c: AsyncBenchmarkCompletion, workers: U64, messages: U64, size: U64, write: U64) =>
+    _bench = c
+    _workers = workers
+
     let list = SortedList
 
     for i in Range[U64](0, workers) do
-      Worker(messages, size, write, list).work()
+      Worker(this, messages, size, write, list).work()
+    end
+  
+  be done() =>
+    if (_workers = _workers - 1) == 1 then
+      _bench.complete()
     end
 
 actor Worker
+  let _master: Master
   let _size: U64
   let _write: U64
   let _list: SortedList
+  let _random: SimpleRand
 
   var _messages: U64
 
-  new create(messages: U64, size: U64, write: U64, list: SortedList) =>
+  new create(master: Master, messages: U64, size: U64, write: U64, list: SortedList) =>
+    _master = master
     _size = size
     _write = write
     _list = list
+    _random = SimpleRand(messages + size + write)
 
     _messages = messages
  
@@ -65,7 +95,7 @@ actor Worker
     _messages = _messages - 1
 
     if _messages > 0 then
-      let value' = Rand(Time.now()._2.u64()).int(100)
+      let value' = _random.nextInt(where max = 100).u64()
 
       if value' < _size then
         _list.size(this)
@@ -74,6 +104,8 @@ actor Worker
       else
         _list.contains(this, value')
       end
+    else
+      _master.done()
     end
 
 actor SortedList

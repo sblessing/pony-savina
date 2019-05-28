@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive PhilosopherConfig
+/*primitive PhilosopherConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("philosopher", "", [
@@ -21,18 +22,26 @@ primitive PhilosopherConfig
           where short' = 'c', default' = 1
         )
       ]) ?
-    end
+    end*/
 
-actor DiningPhilosophers
-  new run(args: Command val, env: Env) =>
-    let philosophers = args.option("philosophers").u64()
-    let arbitator = Arbitrator(philosophers)
-    let actors = Array[Philosopher](philosophers.usize())
+class iso DiningPhilosophers is AsyncActorBenchmark
+  let _philosophers: U64
+  let _rounds: U64
+  let _channels: U64
 
-    for i in Range[U64](0, philosophers) do
+  new iso create(philosophers: U64, rounds: U64, channels: U64) =>
+    _philosophers = philosophers
+    _rounds = rounds
+    _channels = channels
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    let arbitator = Arbitrator(c, _philosophers)
+    let actors = Array[Philosopher](_philosophers.usize())
+
+    for i in Range[U64](0, _philosophers) do
       actors.push(Philosopher(
         i.usize(),
-        args.option("rounds").u64(),
+        _rounds,
         arbitator
       ))
     end
@@ -40,6 +49,8 @@ actor DiningPhilosophers
     for j in Range[USize](0, actors.size()) do
       try actors(j)?.start() end
     end
+  
+  fun tag name(): String => "Dining Philosophers"
 
 actor Philosopher
   var _id: USize
@@ -65,15 +76,21 @@ actor Philosopher
 
     if (_rounds = _rounds - 1) >= 1 then
       start()
+    else
+      _arbitator.finished()
     end  
 
 actor Arbitrator
+  let _bench: AsyncBenchmarkCompletion
   var _forks: Array[Bool]
   var _philosophers: U64
+  var _done: U64
 
-  new create(philosophers: U64) =>
+  new create(c: AsyncBenchmarkCompletion, philosophers: U64) =>
+    _bench = c
     _forks = Array[Bool].init(false, philosophers.usize())
     _philosophers = philosophers
+    _done = philosophers
 
   be hungry(philosopher: Philosopher, id: USize) =>
     let right_index = (id + 1) % _philosophers.usize()
@@ -95,5 +112,10 @@ actor Arbitrator
     try
       _forks(id) ? = false
       _forks((id + 1) % _philosophers.usize()) ? = false
+    end
+  
+  be finished() =>
+    if (_done = _done - 1) == 1 then
+      _bench.complete()
     end
     
