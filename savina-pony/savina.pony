@@ -48,7 +48,7 @@ actor Main is BenchmarkRunner
     bench(12, concsll.Concsll(20, 8000, 1, 10))
     bench(12, Logmap(25000, 10, 3.64, 0.0025))
     bench(12, DiningPhilosophers(20, 10000, 1))
-    //bench(Big)
+    bench(12, Big(20000, 120))
     //bench(Chameneos)
     //bench(Count)
     //bench(Fib)
