@@ -1,6 +1,7 @@
 use "cli"
+use "../../util"
 
-primitive FibConfig
+/*primitive FibConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("fib", "", [
@@ -10,30 +11,36 @@ primitive FibConfig
           where short' = 'i', default' = 25
         )
       ]) ?
-    end
+    end*/
 
-actor Fib
-  new run(args: Command val, env: Env) =>
-    var n = args.option("index").u64().i64()
-    Fibonacci.root(n, env) 
+class iso Fib is AsyncActorBenchmark
+  let _index: U64
+
+  new iso create(index: U64) =>
+    _index = index
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    Fibonacci.root(c, _index.i64()) 
+  
+  fun tag name(): String => "Fib"
 
 actor Fibonacci
+  let _bench: (AsyncBenchmarkCompletion | None)
   var _parent: (Fibonacci | None)
-  var _env: (Env | None)
   var _responses: U64
   var _result: U64
 
-  new root(n: I64, env: Env) =>
+  new root(c: AsyncBenchmarkCompletion, n: I64) =>
+    _bench = c
     _parent = None
-    _env = env
     _responses = 0
     _result = 0
 
     _compute(n)
 
   new request(parent': Fibonacci, n: I64) =>
+    _bench = None
     _parent = parent'
-    _env = None
     _responses = 0
     _result = 0
 
@@ -57,7 +64,7 @@ actor Fibonacci
     end 
 
   fun ref _propagate() =>
-    match (_parent, _env)
-    | (let parent': Fibonacci, None) => parent'.response(_result)
-    | (None, let env: Env) => env.out.print(" Result = " + _result.string()) 
+    match (_parent, _bench)
+    | (let parent': Fibonacci, _) => parent'.response(_result)
+    | (None, let bench': AsyncBenchmarkCompletion) => bench'.complete()
     end
