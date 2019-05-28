@@ -47,19 +47,34 @@ primitive BusyWaiter
 
     test
     
-actor Uct
-  new run(args: Command val, env: Env) =>
+class iso Uct is AsyncActorBenchmark
+  let _nodes: U64
+  let _avg: U64
+  let _stddev: U64
+  let _binomial: U64
+  let _urgent: U64
+
+  new iso create(nodes: U64, avg: U64, stddev: U64, binomial: U64, urgent: U64) =>
+    _nodes = nodes
+    _avg = avg
+    _stddev = stddev
+    _binomial = binomial
+    _urgent = urgent
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     Root.generate(
-      env, 
-      args.option("nodes").u64(),
-      args.option("binomial").u64(),
-      args.option("avg").u64(),
-      args.option("stddev").u64(),
-      args.option("urgent").u64()
+      c, 
+      _nodes,
+      _binomial,
+      _avg,
+      _stddev,
+      _urgent
     )
+  
+  fun tag name(): String => "Unbalanced Cobwebbed Tree"
     
 actor Root
-  let _env: Env
+  let _bench: AsyncBenchmarkCompletion
   let _max_nodes: U64
   let _binomial: U64
   let _avg: U64
@@ -74,8 +89,8 @@ actor Root
   var _final: Bool
   var _traversed: Bool
 
-  new generate(env: Env, max_nodes: U64, binomial: U64, avg: U64, stddev: U64, urgent: U64) =>
-    _env = env
+  new generate(c: AsyncBenchmarkCompletion, max_nodes: U64, binomial: U64, avg: U64, stddev: U64, urgent: U64) =>
+    _bench = c
     _max_nodes = max_nodes
     _binomial = binomial
     _avg = avg
@@ -107,7 +122,7 @@ actor Root
 
     for i in Range[USize](0, _binomial.usize()) do
       _has_grant_children.push(false)
-      _children.push(Node(_env, this, this, _size + 1, _binomial, _height, computation_size))
+      _children.push(Node(this, this, _size + 1, _binomial, _height, computation_size))
     end
 
     _size = _size + _binomial
@@ -147,8 +162,7 @@ actor Root
       end
     else
       if _final != true then
-        _env.out.print("final size= " + _size.string())
-        _env.out.print("final height= " + _height.string())
+        _bench.complete()
         _final = true
       end
 
@@ -156,7 +170,6 @@ actor Root
     end
 
 actor Node
-  let _env: Env
   let _root: Root
   let _parent: (Root | Node)
   let _id: U64
@@ -168,8 +181,7 @@ actor Node
   var _has_grant_children: Array[Bool]
   var _children: Array[Node]
 
-  new create(env: Env, root: Root, parent: (Node | Root), id: U64, binomial: U64, height: U64, computation_size: U64, urgent: Bool = false) =>
-    _env = env
+  new create( root: Root, parent: (Node | Root), id: U64, binomial: U64, height: U64, computation_size: U64, urgent: Bool = false) =>
     _root = root
     _parent = parent
     _id = id
@@ -188,7 +200,7 @@ actor Node
     _parent.grant(_id % _binomial)
 
     for i in Range[U64](0, _binomial) do
-      _children.push(Node(_env, _root, this, id + i, _binomial, _height + 1, computation_size, (urgent and (i == urgent_child_id)))) 
+      _children.push(Node(_root, this, id + i, _binomial, _height + 1, computation_size, (urgent and (i == urgent_child_id)))) 
     end
 
     _has_children = true
