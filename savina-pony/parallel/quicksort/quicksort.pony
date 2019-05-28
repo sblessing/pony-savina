@@ -2,7 +2,7 @@ use "cli"
 use "collections"
 use "../../util/"
 
-primitive QuicksortConfig
+/*primitive QuicksortConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("quicksort", "", [
@@ -27,15 +27,21 @@ primitive QuicksortConfig
           where short' = 's', default' = 1024
         )
       ]) ?
-    end
+    end*/
 
-actor Quicksort
-  new run(args: Command val, env: Env) =>
-    let length = args.option("dataset").u64()
-    let seed = args.option("seed").u64()
-    let max = args.option("max").u64()
-    let threshold = args.option("threshold").u64()
+class iso Quicksort is AsyncActorBenchmark
+  let _dataset: U64
+  let _max: U64
+  let _threshold: U64
+  let _seed: U64
 
+  new iso create(dataset: U64, max: U64, threshold: U64, seed: U64) =>
+    _dataset = dataset
+    _seed = seed
+    _max = max
+    _threshold = max
+
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     let data = recover Array[U64] end
     let random = SimpleRand(seed)
 
@@ -43,7 +49,9 @@ actor Quicksort
       data.push((random.nextLong() % max).abs())
     end
 
-    Sorter(env, None, PositionInitial, threshold, length).sort(consume data)
+    Sorter(c, None, PositionInitial, threshold, length).sort(consume data)
+
+  fun tag name(): String => "Quicksort"
 
 primitive PositionInitial
 primitive PositionLeft
@@ -56,7 +64,7 @@ type Position is
   )
 
 actor Sorter
-  let _env: Env
+  let _bench: AsyncBenchmarkCompletion
   let _parent: (Sorter | None)
   let _position: Position
   let _threshold: U64
@@ -64,8 +72,8 @@ actor Sorter
   var _fragments: U64
   var _result: (Array[U64] val | None)
 
-  new create(env: Env, parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
-    _env = env
+  new create(c: AsyncBenchmarkCompletion, parent: (Sorter | None), position: Position, threshold: U64, length: U64) =>
+    _bench = c
     _parent = parent
     _position = position
     _threshold = threshold
@@ -146,7 +154,7 @@ actor Sorter
 
   fun ref _notify_parent() =>
     if _position is PositionInitial then
-      _env.out.print(" Result valid = " + _validate().string())
+      _bench.complete()
     else
       match (_parent, _result)
       | (let parent: Sorter, let data: Array[U64] val) => parent.result(data, _position)
