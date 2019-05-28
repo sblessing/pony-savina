@@ -1,5 +1,6 @@
 use "cli"
 use "collections"
+use "../../util"
 
 primitive ThreadRingConfig
   fun val apply(): CommandSpec iso^ ? =>
@@ -18,22 +19,20 @@ primitive ThreadRingConfig
       ]) ?
     end
 
-actor ThreadRing
-  var _actors: U64
-  var _pass: U64
+class iso ThreadRing is AsyncActorBenchmark
+  let _actors: U64
+  let _pass: U64
 
-  new run(args: Command val, env: Env) =>
-    _actors = args.option("actors").u64()
-    _pass = args.option("pass").u64()
+  new iso create(actors: U64, pass: U64) =>
+    _actors = actors
+    _pass = pass
 
-   setup_ring()
- 
-  fun setup_ring() =>
-    let first = RingActor
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    let first = RingActor(c)
     var next = first
 
     for k in Range[U64](0, _actors - 1) do
-      let current = RingActor.neighbor(next)
+      let current = RingActor.neighbor(c, next)
       next = current
     end
 
@@ -42,14 +41,19 @@ actor ThreadRing
     if _pass > 0 then
       first.pass(_pass)
     end
+  
+  fun tag name(): String => "Thread Ring"
     
 actor RingActor
-  var _next: (RingActor|None)
+  let _bench: AsyncBenchmarkCompletion
+  var _next: (RingActor | None)
 
-  new create() =>
+  new create(c: AsyncBenchmarkCompletion) =>
+    _bench = c
     _next = None
 
-  new neighbor(next': RingActor) =>
+  new neighbor(c: AsyncBenchmarkCompletion, next': RingActor) =>
+    _bench = c
     _next = next'
 
   be next(neighbor': RingActor) =>
@@ -60,5 +64,7 @@ actor RingActor
       match _next
       | let n: RingActor => n.pass(left - 1)
       end
+    else
+      _bench.complete()
     end
     
