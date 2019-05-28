@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive RecmatmulConfig
+/*primitive RecmatmulConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("recmatmul", "", [
@@ -26,21 +27,30 @@ primitive RecmatmulConfig
           where short' = 'p', default' = 10
         )
       ]) ?
-    end
+    end*/
 
-actor Recmatmul
-  new run(args: Command val, env: Env) =>
-    let workers = args.option("workers").u64()
-    let data_length = args.option("length").u64()
-    let threshold = args.option("threshold").u64()
-    
-    Master(env, workers, data_length, threshold)
+class iso Recmatmul is AsyncActorBenchmark
+  let _workers: U64
+  let _length: U64
+  let _threshold: U64
+
+  new iso create(workers: U64, length: U64, threshold: U64, priorities: U64) =>
+    _workers = workers
+    _length = length
+    _threshold = threshold
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>    
+    Master(c, _workers, _length, _threshold)
+  
+  fun tag name(): String => "Recursive Matrix Multiplication"
 
 actor Collector
+  let _bench: AsyncBenchmarkCompletion
   let _length: U64
   var _result: Array[Array[U64]]
 
-  new create(length: U64) =>
+  new create(c: AsyncBenchmarkCompletion, length: U64) =>
+    _bench = c
     _length = length
     _result = Array[Array[U64]]
 
@@ -52,33 +62,6 @@ actor Collector
       i = i + 1
     end 
   
-  fun box _validate(): Bool =>
-    var i: USize = 0
-    var j: USize = 0
-    let size = _length.usize()
-
-    while i < size do
-      while j < size do
-        try
-          let actual = _result(i)?(j)?
-          let expected: U64 = _length * i.u64() * j.u64()
-            
-          if actual != expected then
-            @printf[I32]((actual.string() + " = " + expected.string() + "\n").cstring())
-            return false
-          end
-        else
-          return false
-        end
-
-        j = j + 1
-      end
-
-      i = i + 1
-    end
-
-    true
-
   be collect(partial_result: Array[(USize, USize, U64)] val) =>
     for n in Range[USize](0, partial_result.size()) do
       try
@@ -90,13 +73,8 @@ actor Collector
         _result(i)?(j)? = r
       end
     end
-  
-  fun _final() =>
-    @printf[I32]((" Result valid = " + _validate().string() + "\n").cstring())
-
 
 actor Master
-  let _env: Env
   let _workers: Array[Worker]
   let _length: U64
   let _num_blocks: U64
@@ -108,14 +86,13 @@ actor Master
   var _sent: U64
   var _received: U64
 
-  new create(env: Env, workers: U64, data_length: U64, threshold: U64) =>
-    _env = env
+  new create(c: AsyncBenchmarkCompletion, workers: U64, data_length: U64, threshold: U64) =>
     _workers = Array[Worker](workers.usize())
     _length = data_length
     _num_blocks = data_length * data_length
     _sent = 0
     _received = 0
-    _collector = Collector(data_length)
+    _collector = Collector(c, data_length)
 
     let size = _length.usize()
 

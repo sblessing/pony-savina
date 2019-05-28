@@ -2,7 +2,7 @@ use "cli"
 use "collections"
 use "../../util"
 
-primitive RadixsortConfig
+/*primitive RadixsortConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("radixsort", "", [
@@ -22,37 +22,44 @@ primitive RadixsortConfig
           where short' = 's', default' = 2048
         )
       ]) ?
-    end
+    end*/
 
 type Neighbor is (Validation | Sorter)
 
-actor Radixsort
-  new run(args: Command val, env: Env) =>
-    let size = args.option("dataset").u64()
-    let max = args.option("max").u64()
-    let seed = args.option("seed").u64()
+class iso Radixsort is AsyncActorBenchmark
+  let _dataset: U64
+  let _max: U64
+  let _seed: U64
 
-    var radix = max / 2
-    var next: Neighbor = Validation(size, env)
+  new iso create(dataset: U64, max: U64, seed: U64) =>
+    _dataset = dataset
+    _max = max
+    _seed = seed
+
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    var radix = _max / 2
+    var next: Neighbor = Validation(c, _dataset)
 
     while radix > 0 do
-      next = Sorter(size, radix, next)
+      next = Sorter(_dataset, radix, next)
       radix = radix / 2
     end
 
-    Source(size, max, seed, next)
+    Source(_dataset, _max, _seed, next)
+  
+  fun tag name(): String => "Radixsort"
 
 actor Validation
+  let _bench: AsyncBenchmarkCompletion
   let _size: U64
-  let _env: Env
   var _sum: F64
   var _received: U64
   var _previous: U64
   var _error: (I64, I32)
 
-  new create(size: U64, env: Env) =>
+  new create(c: AsyncBenchmarkCompletion, size: U64) =>
+    _bench = c
     _size = size
-    _env = env
     _sum = 0
     _received = 0
     _previous = 0
@@ -68,7 +75,7 @@ actor Validation
     _sum = _sum + _previous.f64()
 
     if _received == _size then
-      _env.out.print("Elements sum: " + _sum.string())
+      _bench.complete()
     end
 
 actor Source
