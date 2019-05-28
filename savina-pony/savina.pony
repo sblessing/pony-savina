@@ -63,7 +63,7 @@ actor Main is BenchmarkRunner
     //bench(filterbank.Filterbank)
     ////bench(Nqueenk)
     ////bench(pi.Piprecision)
-    bench(quicksort.Quicksort)
+    bench(12, quicksort.Quicksort(1000000, U64(1 << 60), 2048, 1024))
     //bench(radixsort.RadixSort)
     //bench(recmatmul.Recmatmul)
     //bench(Sieve)

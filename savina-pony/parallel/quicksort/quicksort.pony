@@ -43,13 +43,13 @@ class iso Quicksort is AsyncActorBenchmark
 
   fun box apply(c: AsyncBenchmarkCompletion) =>
     let data = recover Array[U64] end
-    let random = SimpleRand(seed)
+    let random = SimpleRand(_seed)
 
-    for i in Range[U64](0, length) do
-      data.push((random.nextLong() % max).abs())
+    for i in Range[U64](0, _dataset) do
+      data.push((random.nextLong() % _max).abs())
     end
 
-    Sorter(c, None, PositionInitial, threshold, length).sort(consume data)
+    Sorter(c, None, PositionInitial, _threshold, _dataset).sort(consume data)
 
   fun tag name(): String => "Quicksort"
 
@@ -174,8 +174,8 @@ actor Sorter
         let pivot = input(size / 2)?
         let pivots = _pivotize(input, pivot)
 
-        Sorter(_env, this, PositionLeft, _threshold, _length).sort(pivots._1)
-        Sorter(_env, this, PositionRight, _threshold, _length).sort(pivots._2)
+        Sorter(_bench, this, PositionLeft, _threshold, _length).sort(pivots._1)
+        Sorter(_bench, this, PositionRight, _threshold, _length).sort(pivots._2)
 
         _result = pivots._3
         _fragments = _fragments + 1
