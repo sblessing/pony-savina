@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive TrapezoidConfig
+/*primitive TrapezoidConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("trapezoid", "", [
@@ -26,29 +27,40 @@ primitive TrapezoidConfig
           where short' = 'y', default' = 5
         )
       ]) ?
-    end
+    end*/
 
-actor Trapezoid
-  new run(args: Command val, env: Env) =>
-    let left = args.option("left").u64()
-    let right = args.option("right").u64()
-    let precision: F64 = ( right - left ).f64() / args.option("pieces").u64().f64()
-    
+class iso Trapezoid is AsyncActorBenchmark
+  let _pieces: U64
+  let _workers: U64
+  let _left: U64
+  let _right: U64
+  let _precision: F64
+
+  new iso create(pieces: U64, workers: U64, left: U64, right: U64) =>
+    _pieces = pieces
+    _workers = workers
+    _left = left
+    _right = right
+    _precision = ( right - left ).f64() / _pieces.f64()
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>    
     Master(
-      env,
-      args.option("workers").u64(),
-      left.f64(),
-      right.f64(),
-      precision
+      c,
+      _workers,
+      _left.f64(),
+      _right.f64(),
+      _precision
     )
+  
+  fun tag name(): String => "Trapezoid"
 
 actor Master
-  let _env: Env
+  let _bench: AsyncBenchmarkCompletion
   var _result_area: F64
   var _workers: U64
 
-  new create(env: Env, workers: U64, left: F64, right: F64, precision: F64) =>
-    _env = env
+  new create(c: AsyncBenchmarkCompletion, workers: U64, left: F64, right: F64, precision: F64) =>
+    _bench = c
     _workers = workers
     _result_area = 0
 
@@ -63,7 +75,7 @@ actor Master
     _result_area = _result_area + area
 
     if (_workers = _workers - 1) == 1 then
-      _env.out.print("  Area: " + _result_area.string())
+      _bench.complete()
     end
 
 primitive Fx
