@@ -1,6 +1,7 @@
 use "cli"
+use "../../util"
 
-primitive CountConfig
+/*primitive CountConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("count", "", [
@@ -10,14 +11,18 @@ primitive CountConfig
           where short' = 'n', default' = 1000000
         )
       ]) ?
-    end
+    end*/
 
-actor Count
+class iso Count is AsyncActorBenchmark
   let _messages: U64
 
-  new run(args: Command val, env: Env) =>
-    _messages = args.option("messages").u64()
-    Producer.increment(Counter, _messages, env)
+  new iso create(messages: U64) =>
+    _messages = messages
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
+    Producer.increment(c, Counter, _messages)
+  
+  fun tag name(): String => "Count"
 
 actor Counter
   var _count: U64 = 0
@@ -29,13 +34,13 @@ actor Counter
     sender.result(_count)
   
 actor Producer
+  let _bench: AsyncBenchmarkCompletion
   let _messages: U64
-  let _env: Env
 
-  new increment(counter: Counter, messages: U64, env: Env) =>
+  new increment(c: AsyncBenchmarkCompletion, counter: Counter, messages: U64) =>
+    _bench = c
     _messages = messages
-    _env = env
-
+    
     var i: U64 = 0
 
     while i < _messages do
@@ -46,11 +51,7 @@ actor Producer
     counter.retrieve(this)
   
   be result(result': U64) =>
-    if result' != _messages then
-      _env.out.print("ERROR: expected: " + _messages.string() + ", found: " + result'.string())
-    else
-      _env.out.print("SUCCESS! received: " + result'.string())
-    end
+    _bench.complete()
 
   
 

@@ -50,7 +50,7 @@ actor Main is BenchmarkRunner
     bench(12, DiningPhilosophers(20, 10000, 1))
     bench(12, Big(20000, 120))
     bench(12, Chameneos(100, 200000))
-    //bench(Count)
+    bench(12, Count(1000000))
     //bench(Fib)
     //bench(Fjcreate)
     //bench(Fjthrput)
