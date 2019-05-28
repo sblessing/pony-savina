@@ -1,4 +1,5 @@
 use "./util"
+use "cli"
 
 use banking = "concurrency/banking"
 use barber = "concurrency/barber"
@@ -35,7 +36,31 @@ use "parallel/uct"
 
 actor Main is BenchmarkRunner
   new create(env: Env) =>
-    Savina(env, this)
+    let cs =
+      try
+        CommandSpec.leaf("savina", "The Savina Benchmark Suite (Pony)", [
+          OptionSpec.bool("parseable", "Parseable output format"
+            where short' = 'p', default' = false)
+        ])? .> add_help()?
+      else
+        env.exitcode(-1)
+        return
+      end
+
+    let cmd =
+      match CommandParser(cs).parse(env.args, env.vars)
+      | let c: Command => c
+      | let ch: CommandHelp =>
+          ch.print_help(env.out)
+          env.exitcode(0)
+          return
+      | let se: SyntaxError =>
+          env.out.print(se.string())
+          env.exitcode(1)
+          return
+      end
+
+    Savina(env, this, cmd.option("parseable").bool())
 
   fun tag benchmarks(bench: Savina) =>
     bench(12, banking.Banking(1000, 50000))

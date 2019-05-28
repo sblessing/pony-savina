@@ -15,10 +15,12 @@ interface tag AsyncBenchmarkCompletion
 
 class Result
   let _benchmark: String
+  let _parseable: Bool
   let _samples: Array[F64]
 
-  new create(benchmark: String) =>
+  new create(benchmark: String, parseable: Bool) =>
     _benchmark = benchmark
+    _parseable = parseable
     _samples = Array[F64]
 
   fun ref record(nanos: U64) =>
@@ -33,13 +35,21 @@ class Result
       end
     end
 
-    "".join(
-      [ Format(_benchmark where width = 30)
-        Format(_mean().string() + " ms" where width = 18, align = AlignRight)
-        Format(_median().string() + " ms" where width = 18, align = AlignRight)
-        Format("±" + _error().string() + " %" where width = 18, align = AlignRight)
-      ].values()
-    )
+    if not _parseable then
+      "".join(
+        [ Format(_benchmark where width = 30)
+          Format(_mean().string() + " ms" where width = 18, align = AlignRight)
+          Format(_median().string() + " ms" where width = 18, align = AlignRight)
+          Format("±" + _error().string() + " %" where width = 18, align = AlignRight)
+        ].values())
+    else
+      ",".join([
+        _benchmark
+        _mean().string()
+        _median().string()
+        _error().string()
+      ].values())
+    end
   
   fun ref _sum(): F64 =>
     var sum: F64 = 0
@@ -81,7 +91,6 @@ class Result
        try result = result + _samples(i)?.log10() end
     end
     
-
     F64(10).pow(result / _samples.size().f64())
 
   fun ref _harmonic_mean(): F64 =>
@@ -137,27 +146,30 @@ class Result
        0
      end
 
-
 type ResultsMap is MapIs[AsyncActorBenchmark tag, Result]
 
 class OutputManager
   let _env: Env
+  let _parseable: Bool
   let _results: ResultsMap
   var _incoming: (AsyncActorBenchmark tag | None)
   
-  new iso create(env: Env) =>
+  new iso create(env: Env, parseable: Bool) =>
     _env = env
+    _parseable = parseable
     _results = ResultsMap
     _incoming = None
 
-    _print("".join(
-      [ ANSI.bold()
-        Format("Benchmark" where width = 30)
-        Format("mean" where width = 18, align = AlignRight)
-        Format("median" where width = 18, align = AlignRight)
-        Format("error" where width = 18, align = AlignRight)
-        ANSI.reset()
-      ].values()))
+    if not _parseable then
+      _print("".join(
+        [ ANSI.bold()
+          Format("Benchmark" where width = 30)
+          Format("mean" where width = 18, align = AlignRight)
+          Format("median" where width = 18, align = AlignRight)
+          Format("error" where width = 18, align = AlignRight)
+          ANSI.reset()
+        ].values()))
+    end
 
   fun ref _print(s: String) =>
     _env.out.print(s)
@@ -168,7 +180,7 @@ class OutputManager
     try 
       _results(benchmark)? 
     else 
-      _results(benchmark) = Result(benchmark.name())
+      _results(benchmark) = Result(benchmark.name(), _parseable)
     end
 
   fun ref report(nanos: U64) =>
@@ -189,9 +201,9 @@ actor Savina
   var _end: U64
   var _running: Bool
 
-  new create(env: Env, runner: BenchmarkRunner) =>
+  new create(env: Env, runner: BenchmarkRunner, parseable: Bool) =>
     _benchmarks = recover List[(U64, AsyncActorBenchmark iso)] end
-    _output = OutputManager(env)
+    _output = OutputManager(env, parseable)
     _env = env
     _start = 0
     _end = 0
