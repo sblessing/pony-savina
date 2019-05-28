@@ -65,7 +65,7 @@ actor Main is BenchmarkRunner
     ////bench(pi.Piprecision)
     bench(12, quicksort.Quicksort(1000000, U64(1 << 60), 2048, 1024))
     bench(12, radixsort.Radixsort(100000, U64(1 << 60), 2048))
-    //bench(12, recmatmul.Recmatmul(20, 1024, 16384, 10))
+    bench(12, recmatmul.Recmatmul(20, 1024, 16384, 10))
     bench(12, Sieve(100000, 1000))
     ////bench(Sor)
     bench(12, trapezoid.Trapezoid(1000000, 100, 1, 5))

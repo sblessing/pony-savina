@@ -45,12 +45,12 @@ class iso Recmatmul is AsyncActorBenchmark
   fun tag name(): String => "Recursive Matrix Multiplication"
 
 actor Collector
-  let _bench: AsyncBenchmarkCompletion
+  let _master: Master
   let _length: U64
   var _result: Array[Array[U64]]
 
-  new create(c: AsyncBenchmarkCompletion, length: U64) =>
-    _bench = c
+  new create(master: Master, length: U64) =>
+    _master = master
     _length = length
     _result = Array[Array[U64]]
 
@@ -74,7 +74,10 @@ actor Collector
       end
     end
 
+    _master.done()
+
 actor Master
+  let _bench: AsyncBenchmarkCompletion
   let _workers: Array[Worker]
   let _length: U64
   let _num_blocks: U64
@@ -84,15 +87,17 @@ actor Master
   let _collector: Collector
 
   var _sent: U64
-  var _received: U64
+  var _num_workers: U64
 
   new create(c: AsyncBenchmarkCompletion, workers: U64, data_length: U64, threshold: U64) =>
+    _bench = c
     _workers = Array[Worker](workers.usize())
+    
     _length = data_length
     _num_blocks = data_length * data_length
     _sent = 0
-    _received = 0
-    _collector = Collector(c, data_length)
+    _num_workers = workers
+    _collector = Collector(this, data_length)
 
     let size = _length.usize()
 
@@ -130,6 +135,11 @@ actor Master
     
   be work(priority: U64, srA: U64, scA: U64, srB: U64, scB: U64, srC: U64, scC: U64, length: U64, dimension: U64) =>
     _send_work(priority, srA, scA, srB, scB, srC, scC, length, dimension)
+  
+  be done() =>
+    if (_num_workers = _num_workers - 1) == 1 then
+      _bench.complete()
+    end
 
 actor Worker
   let _master: Master
