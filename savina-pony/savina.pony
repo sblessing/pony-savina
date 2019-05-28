@@ -24,7 +24,7 @@ use "micro/threadring"
 //use "parallel/astar"
 //use "parallel/bitonicsort"
 //use facloc = "parallel/facloc"
-//use filterbank = "parallel/filterbank"
+use filterbank = "parallel/filterbank"
 //use nqueenk = "parallel/nqueenk"
 //use pi = "parallel/piprecision"
 use quicksort = "parallel/quicksort"
@@ -60,16 +60,16 @@ actor Main is BenchmarkRunner
     ////bench(Astar)
     ////bench(Bitonicsort)
     ////bench(Facloc)
-    //bench(filterbank.Filterbank)
+    bench(12, filterbank.Filterbank(16384, 34816, 8, 100))
     ////bench(Nqueenk)
     ////bench(pi.Piprecision)
     bench(12, quicksort.Quicksort(1000000, U64(1 << 60), 2048, 1024))
     bench(12, radixsort.Radixsort(100000, U64(1 << 60), 2048))
     //bench(12, recmatmul.Recmatmul(20, 1024, 16384, 10))
-    //bench(12, Sieve(100000, 1000))
+    bench(12, Sieve(100000, 1000))
     ////bench(Sor)
     bench(12, trapezoid.Trapezoid(1000000, 100, 1, 5))
-    //bench(Uct)
+    //bench(12, Uct(200000, 500, 100, 10, 50))
 
 
 

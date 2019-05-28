@@ -1,7 +1,8 @@
 use "cli"
 use "collections"
+use "../../util"
 
-primitive FilterbankConfig
+/*primitive FilterbankConfig
   fun val apply(): CommandSpec iso^ ? =>
     recover
       CommandSpec.leaf("filterbank", "", [
@@ -26,32 +27,39 @@ primitive FilterbankConfig
           where short' = 'r', default' = 100
         )
       ]) ?
-    end
+    end*/
 
 type Matrix is Array[Array[U64] val] val
 
-actor Filterbank
-  new run(args: Command val, env: Env) =>
-    let simulations = args.option("simulations").u64() 
-    let columns = args.option("columns").u64()
-    let sinkrate = args.option("sinkrate").u64()
-    let width = columns.usize()
-    var channels = args.option("channels").u64()
-    
-    channels = U64(2).max(U64(channels).min(33))
+class iso Filterbank is AsyncActorBenchmark
+  let _simulations: U64
+  let _columns: U64
+  let _sinkrate: U64
+  let _width: USize
+  var _channels: U64
 
+  new iso create(columns: U64, simulations: U64, channels: U64, sinkrate: U64) =>
+    _simulations = simulations
+    _columns = columns
+    _sinkrate = sinkrate
+    _width = columns.usize()
+    _channels = channels
+    
+    _channels = U64(2).max(U64(channels).min(33))
+  
+  fun box apply(c: AsyncBenchmarkCompletion) =>
     var h = recover Array[Array[U64] val] end
     var f = recover Array[Array[U64] val] end
 
-    for i in Range[U64](0, channels) do
-      var hI = recover Array[U64].init(U64(0), width) end
-      var fI = recover Array[U64].init(U64(0), width) end
+    for i in Range[U64](0, _channels) do
+      var hI = recover Array[U64].init(U64(0), _width) end
+      var fI = recover Array[U64].init(U64(0), _width) end
 
-      for j in Range[USize](0, width) do
+      for j in Range[USize](0, _width) do
         let k = j.u64()
      
         try
-          hI(j)? = (k * columns) + (k * channels) + i + k + i + 1 
+          hI(j)? = (k * _columns) + (k * _channels) + i + k + i + 1 
           fI(j)? = (i * k) + ( i * i ) + i + k
         end
       end
@@ -60,20 +68,24 @@ actor Filterbank
       f.push(consume fI)
     end
 
-    let producer = Producer(simulations)
-    let sink = Sink(sinkrate)
+    let producer = Producer(c, _simulations)
+    let sink = Sink(_sinkrate)
     let combine = Combine(sink)
-    let integrator = Integrator(channels, combine)
-    let branch = Branch(channels, columns, consume h, consume f, integrator)
+    let integrator = Integrator(_channels, combine)
+    let branch = Branch(_channels, _columns, consume h, consume f, integrator)
     let source = Source(producer, branch)
 
     producer.next(source)
+  
+  fun tag name(): String => "Filterbank"
 
 actor Producer
+  let _bench: AsyncBenchmarkCompletion
   let _simulations: U64
   var _sent: U64
   
-  new create(simulations: U64) =>
+  new create(c: AsyncBenchmarkCompletion, simulations: U64) =>
+    _bench = c
     _simulations = simulations
     _sent = 0
 
@@ -81,6 +93,8 @@ actor Producer
     if _sent < _simulations then
       source.boot()
       _sent = _sent + 1
+    else
+      _bench.complete()
     end
 
 actor Sink
