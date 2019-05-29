@@ -11,27 +11,37 @@ from os.path import normpath, basename
 import json
 
 class HardwareThreading:
-  def _detect_cpus(self):
+  def _cpu_paths(self):
+    paths = []
+
     for path in os.listdir(self._basepath):
       if re.match(r'cpu[0-9]+.*', path):
-        sibling = -1
-        core_id = int(path.split("/")[-1].replace('cpu', ''))
-        sibling_path = self._basepath + path + self._siblings
-        hyperthread = False
-        fullpath = self._basepath + path
+        paths.append(self._basepath + path)
 
-        if os.path.isfile(sibling_path):
-          with open(sibling_path) as f:
-            sibling = int(f.readline().split(",")[0])
+    return paths
 
-            if core_id != sibling:
-              if self._hyperthreading:
-                self._hyperthreads[core_id] = fullpath
-              
-              hyperthread = True
+  def _detect_cpus(self):
+    for path in self._cpu_paths():
+      sibling = -1
+      core_id = int(path.split("/")[-1].replace('cpu', ''))
+      sibling_path = path + self._siblings
+      hyperthread = False
+      fullpath = path
 
-        if not hyperthread:
-          self._cpus[core_id] = fullpath;
+      if os.path.isfile(sibling_path):
+        with open(sibling_path) as f:
+          sibling = int(f.readline().split(",")[0])
+
+          if core_id != sibling:
+            if self._hyperthreading:
+              self._hyperthreads[core_id] = fullpath
+            else:
+              self._cpu_file(value = "0", explicit = fullpath)
+
+            hyperthread = True
+
+      if not hyperthread:
+        self._cpus[core_id] = fullpath;
 
   def _detect_numa_placement(self):
     lscpu = subprocess.Popen(["lscpu"], stdout=subprocess.PIPE)
@@ -113,11 +123,17 @@ class HardwareThreading:
 
     raise StopIteration
   
-  def _cpu_file(self, core_id, value):
-    try:
-      path = self._cpus[core_id]
-    except KeyError:
-      path = self._hyperthreads[core_id]
+  def _cpu_file(self, value, core_id = -1, explicit = ""):
+    if not explicit:
+      try:
+        path = self._cpus[core_id]
+      except KeyError:
+        path = self._hyperthreads[core_id]
+    else:
+      if explicit == self._basepath + "cpu0":
+        return
+
+      path = explicit
     
     with open(path + "/online", "w") as cpu_file:
       print(value, file=cpu_file)
@@ -131,13 +147,14 @@ class HardwareThreading:
       to_disable = sorted(self._cpus.keys())[1:] + list(self._hyperthreads.keys())
 
     for i in to_disable:
-      self._cpu_file(i, "0")    
+      self._cpu_file("0", core_id = i)    
 
-  def enable(self, core_id):
-    if core_id > 0:
-      self._cpu_file(core_id, "1")   
-
-# java -cp Executable
+  def enable(self, core_id = -1, all = False):
+    if core_id > 0 and all == False:
+      self._cpu_file("1", core_id = core_id)
+    elif all == True:
+      for path in self._cpu_paths():
+        self._cpu_file("1", explicit = path)
 
 class BenchmarkRunner:
   def __init__(self):
@@ -161,7 +178,7 @@ class BenchmarkRunner:
             executables.append(filepath)
     else:
       # some OS executable with full path supplied
-      self._executables.append(path)
+      executables.append(path)
       self._argument_driven = True
     
     return executables
@@ -174,7 +191,7 @@ class BenchmarkRunner:
 
   def _run_process(self, output, exe, args = []):
     with open(output + ".txt", "w+") as outputfile:
-      bench = subprocess.Popen([exe], stdout=outputfile)
+      bench = subprocess.Popen([exe] + args, stdout=outputfile)
       bench.wait()
 
   def configure(self, name, path, args = [], disabled = []):
@@ -186,13 +203,13 @@ class BenchmarkRunner:
     path = self._create_directory(cores)
 
     for exe in iter(self._executables):
-      if not self._argument_drive:
+      if not self._argument_driven:
         output = path + Path(exe).name
         self._run_process(output, exe, self._args)
       else:
         for arg in self._args:
           output = path + basename(normpath(arg[-1]))
-          self._run_process(output, arg[0] + arg[-1])   
+          self._run_process(output, exe, args = arg[0] + [arg[-1]])   
 
 def main():
   if os.geteuid() != 0:
@@ -221,5 +238,7 @@ def main():
       for module in modules:
         module.setup(runner, core_count)
         runner.execute(core_count)
+    
+    cores.enable(all = True)
 
 if __name__ == "__main__": main()
