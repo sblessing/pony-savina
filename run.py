@@ -238,9 +238,7 @@ def main():
     core_count = 0
     runner = BenchmarkRunner()
 
-    progress = 100 / len(cores)
-
-    with tqdm(total=100) as pbar:
+    with tqdm(total=len(cores)*len(modules)) as pbar:
       for core in cores:
         cores.enable(core)
         core_count = core_count + 1
@@ -248,7 +246,7 @@ def main():
         for module in modules:
           module.setup(runner, core_count)
           runner.execute(core_count)
-          pbar.update(progress)
+          pbar.update(1)
     
     cores.enable(all = True)
 
