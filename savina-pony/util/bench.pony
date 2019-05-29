@@ -220,6 +220,9 @@ actor Savina
           (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
 
           _output.prepare(run)
+
+          // Trigger GC next time the Savina actor is scheduled
+          @pony_triggergc[None](@pony_ctx[Pointer[None]]())
           
           run(this)
    
