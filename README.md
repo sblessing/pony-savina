@@ -28,6 +28,12 @@ Pony: Savina Benchmark Suite (Actor Benchmarks)
         cmake ..
         make
 
+* Akka
+
+        cd savina-jvm
+        mvn compile
+        mvn package
+
 ## Run Benchmarks
 
-        python run.py -r [pony|caf] [--hyperthreads]
+        python run.py -r [pony|caf|akka] [--hyperthreads]

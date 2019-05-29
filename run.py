@@ -25,7 +25,7 @@ class HardwareThreading:
             sibling = int(f.readline().split(",")[0])
 
             if core_id != sibling:
-              if self._hyperthreads:
+              if self._hyperthreading:
                 self._hyperthreads[core_id] = fullpath
               
               hyperthread = True
@@ -51,15 +51,15 @@ class HardwareThreading:
       if "-" in line:
         #numa placement is given by range
         interval = line.split("-")
-        cores = [i for i in range(int(interval[0]), int(interval[1])) if self._hyperthreads or i in self._cpus.keys()]
+        cores = [i for i in range(int(interval[0]), int(interval[1])) if self._hyperthreading or i in self._cpus.keys()]
       else:
         #numa placement is given absolute
-        cores = sorted([int(i) for i in line.split(",") if self._hyperthreads or int(i) in self._cpus.keys()])
+        cores = sorted([int(i) for i in line.split(",") if self._hyperthreading or int(i) in self._cpus.keys()])
       
       self._placement.append(cores)
   
   def _print_system_info(self):
-    hyperthread_mode = "on" if self._hyperthreads else "off"
+    hyperthread_mode = "on" if self._hyperthreading else "off"
     physical_core_count = len(self._cpus.keys())
     physical_cores = ",".join([str(i) for i in sorted(self._cpus.keys())])
     hyperthread_count = len(self._hyperthreads.keys())
@@ -68,7 +68,7 @@ class HardwareThreading:
     print("CPU setup [hyperthreading = %s]:" % (hyperthread_mode))
     print("  %d Physical Cores\t: %s" % (physical_core_count, physical_cores))
 
-    if self._bHyperthreads:
+    if self._hyperthreading:
       print("  %d Logical Cores\t: %s" % (hyperthread_count, logical_cores))
 
     for (id, node) in enumerate(self._placement):
@@ -80,7 +80,7 @@ class HardwareThreading:
     self._current_node = 0
     self._current_core = 0
 
-    self._hyperthreads = hyperthreads
+    self._hyperthreading = hyperthreads
     self._basepath = "/sys/devices/system/cpu/"
     self._siblings = "/topology/thread_siblings_list"
     self._cpus = {}
