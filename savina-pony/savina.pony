@@ -32,7 +32,7 @@ use recmatmul = "parallel/recmatmul"
 use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
-use "parallel/uct"
+//use "parallel/uct"
 
 actor Main is BenchmarkRunner
   new create(env: Env) =>

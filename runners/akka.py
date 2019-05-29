@@ -1,2 +1,2 @@
-def setup(oBenchmarkRunner):
+def setup(oBenchmarkRunner, cores):
   print("Akka!")
