@@ -123,6 +123,14 @@ class HardwareThreading:
 
     raise StopIteration
   
+  def __len__(self):
+    length = 0
+
+    for node in self._placement:
+      length += len(self._placement[node])
+    
+    return length
+  
   def _cpu_file(self, value, core_id = -1, explicit = ""):
     if not explicit:
       try:
@@ -228,16 +236,19 @@ def main():
   with HardwareThreading(args.hyperthreads) as cores:
     cores.disable(all = True)
     core_count = 0
-
     runner = BenchmarkRunner()
 
-    for core in tqdm(cores):
-      cores.enable(core)
-      core_count = core_count + 1
+    progress = 100 / len(cores)
 
-      for module in modules:
-        module.setup(runner, core_count)
-        runner.execute(core_count)
+    with tqdm(total=100) as pbar:
+      for core in cores:
+        cores.enable(core)
+        core_count = core_count + 1
+
+        for module in modules:
+          module.setup(runner, core_count)
+          runner.execute(core_count)
+          pbar.update(progress)
     
     cores.enable(all = True)
 
