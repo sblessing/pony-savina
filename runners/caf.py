@@ -1,2 +1,2 @@
 def setup(oBenchmarkRunner, cores):
-  oBenchmarkRunner.configure("caf", "savina-caf/build/bin", aDisabled = [])
+  oBenchmarkRunner.configure("caf", "savina-caf/build/bin")

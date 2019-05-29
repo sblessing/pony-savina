@@ -127,7 +127,7 @@ class HardwareThreading:
     length = 0
 
     for node in self._placement:
-      length += len(self._placement[node])
+      length += len(node)
     
     return length
   
