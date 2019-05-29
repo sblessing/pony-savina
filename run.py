@@ -7,29 +7,31 @@ import stat
 import datetime
 from pathlib import Path 
 from tqdm import tqdm
+from os.path import normpath, basename
+import json
 
 class HardwareThreading:
   def _detect_cpus(self):
-    for sPath in os.listdir(self._basepath):
-      if re.match(r'cpu[0-9]+.*', sPath):
-        iSibling = -1
-        iCoreId = int(sPath.split("/")[-1].replace('cpu', ''))
-        sSiblingPath = self._basepath + sPath + self._siblings
-        bHyperthread = False
-        sFullpath = self._basepath + sPath
+    for path in os.listdir(self._basepath):
+      if re.match(r'cpu[0-9]+.*', path):
+        sibling = -1
+        core_id = int(path.split("/")[-1].replace('cpu', ''))
+        sibling_path = self._basepath + path + self._siblings
+        hyperthread = False
+        fullpath = self._basepath + path
 
-        if os.path.isfile(sSiblingPath):
-          with open(sSiblingPath) as f:
-            iSibling = int(f.readline().split(",")[0])
+        if os.path.isfile(sibling_path):
+          with open(sibling_path) as f:
+            sibling = int(f.readline().split(",")[0])
 
-            if iCoreId != iSibling:
-              if self._bHyperthreads:
-                self._hyperthreads[iCoreId] = sFullpath
+            if core_id != sibling:
+              if self._hyperthreads:
+                self._hyperthreads[core_id] = fullpath
               
-              bHyperthread = True
+              hyperthread = True
 
-        if not bHyperthread:
-          self._cpus[iCoreId] = sFullpath;
+        if not hyperthread:
+          self._cpus[core_id] = fullpath;
 
   def _detect_numa_placement(self):
     lscpu = subprocess.Popen(["lscpu"], stdout=subprocess.PIPE)
@@ -49,35 +51,36 @@ class HardwareThreading:
       if "-" in line:
         #numa placement is given by range
         interval = line.split("-")
-        cores = [i for i in range(int(interval[0]), int(interval[1])) if self._bHyperthreads or i in self._cpus.keys()]
+        cores = [i for i in range(int(interval[0]), int(interval[1])) if self._hyperthreads or i in self._cpus.keys()]
       else:
         #numa placement is given absolute
-        cores = sorted([int(i) for i in line.split(",") if self._bHyperthreads or int(i) in self._cpus.keys()])
+        cores = sorted([int(i) for i in line.split(",") if self._hyperthreads or int(i) in self._cpus.keys()])
       
       self._placement.append(cores)
   
   def _print_system_info(self):
-    sHyperthreadMode = "on" if self._bHyperthreads else "off"
-    iPhysicalCoreCount = len(self._cpus.keys())
-    sPhysicalCores = ",".join([str(i) for i in sorted(self._cpus.keys())])
-    iHyperthreadCount = len(self._hyperthreads.keys())
-    sLogicalCores = ",".join([str(i) for i in sorted(self._hyperthreads.keys())])
+    hyperthread_mode = "on" if self._hyperthreads else "off"
+    physical_core_count = len(self._cpus.keys())
+    physical_cores = ",".join([str(i) for i in sorted(self._cpus.keys())])
+    hyperthread_count = len(self._hyperthreads.keys())
+    logical_cores = ",".join([str(i) for i in sorted(self._hyperthreads.keys())])
 
-    print("CPU setup [hyperthreading = %s]:" % (sHyperthreadMode))
-    print("  %d Physical Cores\t: %s" % (iPhysicalCoreCount, sPhysicalCores))
+    print("CPU setup [hyperthreading = %s]:" % (hyperthread_mode))
+    print("  %d Physical Cores\t: %s" % (physical_core_count, physical_cores))
 
     if self._bHyperthreads:
-      print("  %d Logical Cores\t: %s" % (iHyperthreadCount, sLogicalCores))
+      print("  %d Logical Cores\t: %s" % (hyperthread_count, logical_cores))
 
     for (id, node) in enumerate(self._placement):
       print("  NUMA Node %d\t\t: %s" % (id, ",".join([str(n) for n in node])))
 
+    print("\n")
 
-  def __init__(self, bHyperthreads):
+  def __init__(self, hyperthreads):
     self._current_node = 0
     self._current_core = 0
 
-    self._bHyperthreads = bHyperthreads
+    self._hyperthreads = hyperthreads
     self._basepath = "/sys/devices/system/cpu/"
     self._siblings = "/topology/thread_siblings_list"
     self._cpus = {}
@@ -110,29 +113,29 @@ class HardwareThreading:
 
     raise StopIteration
   
-  def _cpu_file(self, iCoreId, value):
+  def _cpu_file(self, core_id, value):
     try:
-      sPath = self._cpus[iCoreId]
+      path = self._cpus[core_id]
     except KeyError:
-      sPath = self._hyperthreads[iCoreId]
+      path = self._hyperthreads[core_id]
     
-    with open(sPath + "/online", "w") as cpu_file:
+    with open(path + "/online", "w") as cpu_file:
       print(value, file=cpu_file)
 
-  def disable(self, iCoreId = -1, all = False):
+  def disable(self, core_id = -1, all = False):
     to_disable = None
 
-    if iCoreId >= 0 and all == False:
-      to_disable = [iCoreId]
+    if core_id >= 0 and all == False:
+      to_disable = [core_id]
     elif all == True:
       to_disable = sorted(self._cpus.keys())[1:] + list(self._hyperthreads.keys())
 
     for i in to_disable:
       self._cpu_file(i, "0")    
 
-  def enable(self, iCoreId):
-    if iCoreId > 0:
-      self._cpu_file(iCoreId, "1")   
+  def enable(self, core_id):
+    if core_id > 0:
+      self._cpu_file(core_id, "1")   
 
 # java -cp Executable
 
@@ -142,43 +145,54 @@ class BenchmarkRunner:
     self._timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
     self._executables = []
     self._args = []
+    self._argument_driven = False
   
-  def _get_executables(self, sPath):
+  def _get_executables(self, path, disabled):
     executables = []
 
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
 
-    if not os.path.isfile(sPath):
-      for sFilename in os.listdir(sPath):
-        sFilepath = sPath + sFilename if sPath[-1] == "/" else sPath + "/" + sFilename
+    if not os.path.isfile(path):
+      for sFilename in os.listdir(path):
+        filepath = path + sFilename if path[-1] == "/" else path + "/" + sFilename
       
-        if os.path.isfile(sFilepath):
-          if os.stat(sFilepath).st_mode & executable:
-            executables.append(sFilepath)
+        if os.path.isfile(filepath):
+          if (os.stat(filepath).st_mode & executable) and filepath not in disabled:
+            executables.append(filepath)
     else:
-      executables.append(sPath)
+      # some OS executable with full path supplied
+      self._executables.append(path)
+      self._argument_driven = True
     
     return executables
 
   def _create_directory(self, cores):
-    sPath = "output/" + self._timestamp + "/" + self._name + "/" + str(cores)
-    os.makedirs(sPath, exist_ok=True)
+    path = "output/" + self._timestamp + "/" + self._name + "/" + str(cores)
+    os.makedirs(path, exist_ok=True)
 
-    return sPath + "/"
+    return path + "/"
 
-  def configure(self, sName, sPath, aArgs = []):
-    self._name = sName
-    self._args = aArgs
+  def _run_process(self, output, exe, args = []):
+    with open(output + ".txt", "w+") as outputfile:
+      bench = subprocess.Popen([exe], stdout=outputfile)
+      bench.wait()
 
-    self._executables = self._get_executables(sPath) 
+  def configure(self, name, path, args = [], disabled = []):
+    self._name = name
+    self._args = args
+    self._executables = self._get_executables(path, disabled) 
   
   def execute(self, cores):
-    sPath = self._create_directory(cores)
+    path = self._create_directory(cores)
 
     for exe in iter(self._executables):
-      with open(sPath + Path(exe).name + ".txt", "w+") as outputfile:
-        bench = subprocess.Popen([exe] + self._args, stdout=outputfile)
-        bench.wait()
+      if not self._argument_drive:
+        output = path + Path(exe).name
+        self._run_process(output, exe, self._args)
+      else:
+        for arg in self._args:
+          output = path + basename(normpath(arg[-1]))
+          self._run_process(output, arg[0] + arg[-1])   
 
 def main():
   if os.geteuid() != 0:
