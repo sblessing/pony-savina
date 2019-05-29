@@ -214,15 +214,15 @@ actor Savina
   fun ref _next() =>
     if not _running then
       try
+        // Trigger GC next time the Savina actor is scheduled
+        @pony_triggergc[None](@pony_ctx[Pointer[None]]())
+
         _start = Time.nanos()
     
         recover 
           (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
 
           _output.prepare(run)
-
-          // Trigger GC next time the Savina actor is scheduled
-          @pony_triggergc[None](@pony_ctx[Pointer[None]]())
           
           run(this)
    

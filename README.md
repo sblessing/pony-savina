@@ -5,6 +5,9 @@ Pony: Savina Benchmark Suite (Actor Benchmarks)
   * Pony 0.28.0
   * CAF 0.16.3
   * Python >= 3.5
+  * tqdm
+
+            pip install tqdm
 
 ## Clone repository with submodules
       git clone --recurse-submodules git@github.com:sblessing/pony-savina.git

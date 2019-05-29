@@ -6,6 +6,7 @@ import importlib
 import stat
 import datetime
 from pathlib import Path 
+from tqdm import tqdm
 
 class HardwareThreading:
   def _detect_cpus(self):
@@ -168,8 +169,9 @@ class BenchmarkRunner:
   def configure(self, sName, sPath, aArgs = []):
     self._name = sName
     self._args = aArgs
-    self._executables = self._get_executables(sPath)    
 
+    self._executables = self._get_executables(sPath) 
+  
   def execute(self, cores):
     sPath = self._create_directory(cores)
 
@@ -198,7 +200,7 @@ def main():
 
     runner = BenchmarkRunner()
 
-    for core in cores:
+    for core in tqdm(cores):
       cores.enable(core)
       core_count = core_count + 1
 
