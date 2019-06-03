@@ -172,7 +172,7 @@ class BenchmarkRunner:
     self._args = []
     self._argument_driven = False
   
-  def _get_executables(self, path, disabled):
+  def _get_executables(self, path, exclude):
     executables = []
 
     executable = stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
@@ -182,7 +182,7 @@ class BenchmarkRunner:
         filepath = path + sFilename if path[-1] == "/" else path + "/" + sFilename
       
         if os.path.isfile(filepath):
-          if (os.stat(filepath).st_mode & executable) and filepath not in disabled:
+          if (os.stat(filepath).st_mode & executable) and filepath not in exclude:
             executables.append(filepath)
     else:
       # some OS executable with full path supplied
@@ -202,10 +202,10 @@ class BenchmarkRunner:
       bench = subprocess.Popen([exe] + args, stdout=outputfile)
       bench.wait()
 
-  def configure(self, name, path, args = [], disabled = []):
+  def configure(self, name, path, args = [], exclude = []):
     self._name = name
     self._args = args
-    self._executables = self._get_executables(path, disabled) 
+    self._executables = self._get_executables(path, exclude) 
   
   def execute(self, cores):
     path = self._create_directory(cores)
