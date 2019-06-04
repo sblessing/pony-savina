@@ -86,16 +86,18 @@ class HardwareThreading:
 
     print("\n")
 
-  def __init__(self, hyperthreads):
+  def __init__(self, hyperthreads, numactl):
     self._current_node = 0
     self._current_core = 0
 
     self._hyperthreading = hyperthreads
+    self._numactl = numactl
     self._basepath = "/sys/devices/system/cpu/"
     self._siblings = "/topology/thread_siblings_list"
     self._cpus = {}
     self._hyperthreads = {}
-    self._placement = []  
+    self._placement = []
+    self._cpubind = []
 
   def __enter__(self):
     self._detect_cpus()
@@ -132,19 +134,27 @@ class HardwareThreading:
     return length
   
   def _cpu_file(self, value, core_id = -1, explicit = ""):
-    if not explicit:
-      try:
-        path = self._cpus[core_id]
-      except KeyError:
-        path = self._hyperthreads[core_id]
-    else:
-      if explicit == self._basepath + "cpu0":
-        return
+    if not self._numactl:
+      if not explicit:
+        try:
+          path = self._cpus[core_id]
+        except KeyError:
+          path = self._hyperthreads[core_id]
+      else:
+        if explicit == self._basepath + "cpu0":
+          return
 
-      path = explicit
+        path = explicit
     
-    with open(path + "/online", "w") as cpu_file:
-      print(value, file=cpu_file)
+      with open(path + "/online", "w") as cpu_file:
+        print(value, file=cpu_file)
+    else:
+      core = core_id if not explicit else int(explicit.replace(self._basepath + "cpu", ""))
+      
+      if value == "1":
+        self._cpubind.append(core)
+      else:
+        self._cpubind.remove(core)
 
   def disable(self, core_id = -1, all = False):
     to_disable = None
@@ -163,6 +173,9 @@ class HardwareThreading:
     elif all == True:
       for path in self._cpu_paths():
         self._cpu_file("1", explicit = path)
+  
+  def get_cpubind(self):
+    return self._cpubind
 
 class BenchmarkRunner:
   def __init__(self):
@@ -197,9 +210,14 @@ class BenchmarkRunner:
 
     return path + "/"
 
-  def _run_process(self, output, exe, args = []):
+  def _run_process(self, output, exe, cpubind, args = []):
     with open(output + ".txt", "w+") as outputfile:
-      bench = subprocess.Popen([exe] + args, stdout=outputfile)
+      if not cpubind:
+        command = [exe]
+      else:
+        command = ["numactl", "--physcpubind=" + ",".join(cpubind), "--", exe]
+
+      bench = subprocess.Popen(command  + args, stdout=outputfile)
       bench.wait()
 
   def configure(self, name, path, args = [], exclude = []):
@@ -207,33 +225,38 @@ class BenchmarkRunner:
     self._args = args
     self._executables = self._get_executables(path, exclude) 
   
-  def execute(self, cores):
+  def execute(self, cores, cpubind):
     path = self._create_directory(cores)
 
     for exe in iter(self._executables):
       if not self._argument_driven:
         output = path + Path(exe).name
-        self._run_process(output, exe, self._args)
+        self._run_process(output, exe, cpubind, self._args)
       else:
         for arg in self._args:
           output = path + basename(normpath(arg[-1]))
-          self._run_process(output, exe, args = arg[0] + [arg[-1]])   
+          self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
 
 def main():
+  numactl = False
+
   if os.geteuid() != 0:
-    exit("""
-     You need to have root privileges to run this tool.
-     Exiting.
+    print("""
+     Running wihtout root privileges. Falling back to `numactl` rather than
+     hardware CPU offlining.
     """)
+
+    numactl = True
 
   parser = argparse.ArgumentParser()
   parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
   parser.add_argument('-r', "--run", dest='module', action='append')
+  parser.add_arguments('-n', "--numactl", dest="numactl", action='store_true')
   args = parser.parse_args()
 
   modules = [importlib.import_module("." + i, package="runners") for i in args.module]
 
-  with HardwareThreading(args.hyperthreads) as cores:
+  with HardwareThreading(args.hyperthreads, numactl or args.numactl) as cores:
     cores.disable(all = True)
     core_count = 0
     runner = BenchmarkRunner()
@@ -245,7 +268,7 @@ def main():
 
         for module in modules:
           module.setup(runner, core_count)
-          runner.execute(core_count)
+          runner.execute(core_count, cores.get_cpubind())
           pbar.update(1)
     
     cores.enable(all = True)
