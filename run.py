@@ -225,6 +225,7 @@ class BenchmarkRunner:
   def configure(self, name, path, args = [], exclude = []):
     self._name = name
     self._args = args
+    self._argument_driven = False
     self._executables = self._get_executables(path, exclude) 
   
   def execute(self, cores, cpubind):
