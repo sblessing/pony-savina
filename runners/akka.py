@@ -3,13 +3,24 @@ import re
 
 def setup(oBenchmarkRunner, cores):
   classfiles = []
-  ignore = ["LogisticMapAkkaBecomeActorBenchmark.class",  "SucOverRelaxAkkaActorBenchmark.class"]
+
+  exclude = [
+    "BankingAkkaAwaitActorBenchmark.class",
+    "BankingAkkaBecomeActorBenchmark.class",
+    "BankingAkkaManualStashActorBenchmark.class",
+    "GuidedSearchAkkaPriorityActorBenchmark.class",
+    "LogisticMapAkkaBecomeActorBenchmark.class", 
+    "LogisticMapAkkaAwaitActorBenchmark.class",
+    "LogisticMapAkkaManualStashActorBenchmark.class" ,
+    "NQueensAkkaPriorityActorBenchmark.class",
+    "SucOverRelaxAkkaActorBenchmark.class"
+  ]
 
   pattern = re.compile("^[^$]*Akka[^$]*ActorBenchmark.class")
 
   for root, dirs, files in os.walk("savina-jvm/target/classes/edu/rice/habanero/benchmarks/"):
     for file in files:
-      if (not pattern.fullmatch(file) is None) and (file not in ignore):
+      if (not pattern.fullmatch(file) is None) and (file not in exclude):
         classfiles.append(os.path.join(root, os.path.splitext(file)[0]).replace("savina-jvm/target/classes/", ""))
 
   nested_args = []
