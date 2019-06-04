@@ -28,6 +28,8 @@ class HardwareThreading:
       hyperthread = False
       fullpath = path
 
+      self._cpubind.append(core_id)
+
       if os.path.isfile(sibling_path):
         with open(sibling_path) as f:
           sibling = int(f.readline().split(",")[0])
@@ -215,7 +217,7 @@ class BenchmarkRunner:
       if not cpubind:
         command = [exe]
       else:
-        command = ["numactl", "--physcpubind=" + ",".join(cpubind), "--", exe]
+        command = ["numactl", "--physcpubind=" + ",".join(str(i) for i in cpubind), "--", exe]
 
       bench = subprocess.Popen(command  + args, stdout=outputfile)
       bench.wait()
@@ -251,7 +253,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
   parser.add_argument('-r', "--run", dest='module', action='append')
-  parser.add_arguments('-n', "--numactl", dest="numactl", action='store_true')
+  parser.add_argument('-n', "--numactl", dest="numactl", action='store_true')
   args = parser.parse_args()
 
   modules = [importlib.import_module("." + i, package="runners") for i in args.module]
