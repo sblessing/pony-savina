@@ -197,7 +197,7 @@ class BenchmarkRunner:
         filepath = path + sFilename if path[-1] == "/" else path + "/" + sFilename
       
         if os.path.isfile(filepath):
-          if (os.stat(filepath).st_mode & executable) and filepath not in exclude:
+          if (os.stat(filepath).st_mode & executable) and sFilename not in exclude:
             executables.append(filepath)
     else:
       # some OS executable with full path supplied
