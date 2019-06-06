@@ -5,10 +5,11 @@ import subprocess
 import importlib
 import stat
 import datetime
+import json
 from pathlib import Path 
 from tqdm import tqdm
 from os.path import normpath, basename
-import json
+from collections import defaultdict
 
 class HardwareThreading:
   def _cpu_paths(self):
@@ -240,10 +241,23 @@ class BenchmarkRunner:
           output = path + basename(normpath(arg[-1]))
           self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
 
+def plot(results):
+  for i in results.keys():
+    print(i + " -->")
+    for j in results[i]:
+      print("\t" + j + ": " + ", ".join(str(k) for k in results[i][j]))
+
 def main():
   numactl = False
 
-  if os.geteuid() != 0:
+  parser = argparse.ArgumentParser()
+  parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
+  parser.add_argument('-r', '--run', dest='module', action='append')
+  parser.add_argument('-n', '--numactl', dest="numactl", action='store_true')
+  parser.add_argument('-p', '--plot', dest='plot', action='store_true')
+  args = parser.parse_args()
+
+  if os.geteuid() != 0 and args.module:
     print("""
      Running wihtout root privileges. Falling back to `numactl` rather than
      hardware CPU offlining.
@@ -251,29 +265,54 @@ def main():
 
     numactl = True
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
-  parser.add_argument('-r', "--run", dest='module', action='append')
-  parser.add_argument('-n', "--numactl", dest="numactl", action='store_true')
-  args = parser.parse_args()
+  loaded_modules = {}
 
-  modules = [importlib.import_module("." + i, package="runners") for i in args.module]
+  if args.module:
+    for i in args.module:
+      loaded_modules[i] = importlib.import_module("." + i, package="runners")
 
-  with HardwareThreading(args.hyperthreads, numactl or args.numactl) as cores:
-    cores.disable(all = True)
-    core_count = 0
-    runner = BenchmarkRunner()
+    modules = [importlib.import_module("." + i, package="runners") for i in args.module]
 
-    with tqdm(total=len(cores)*len(modules)) as pbar:
-      for core in cores:
-        cores.enable(core)
-        core_count = core_count + 1
+    with HardwareThreading(args.hyperthreads, numactl or args.numactl) as cores:
+      cores.disable(all = True)
+      core_count = 0
+      runner = BenchmarkRunner()
 
-        for module in modules:
-          module.setup(runner, core_count)
-          runner.execute(core_count, cores.get_cpubind())
-          pbar.update(1)
+      with tqdm(total=len(cores)*len(modules)) as pbar:
+        for core in cores:
+          cores.enable(core)
+          core_count = core_count + 1
+
+          for module in loaded_modules.values():
+            module.setup(runner, core_count)
+            runner.execute(core_count, cores.get_cpubind())
+            pbar.update(1)
     
-    cores.enable(all = True)
+      cores.enable(all = True)
+
+  if args.plot:
+    output = defaultdict(lambda: defaultdict(list))
+
+    for root, dirs, files in os.walk("output/"):
+      for file in files:
+        path = os.path.join(root, file)
+        components  = path.split("/")
+        output[int(components[3])][components[2]].append(path)
+
+    results = defaultdict(lambda: defaultdict(lambda: [0.0] * max(output.keys())))
+    
+    for core_count in output.keys():
+      for language in output[core_count]:
+        files = output[core_count][language]
+
+        try:
+          module = loaded_modules[language]
+        except KeyError:
+          module = importlib.import_module("." + language, package="runners")
+          loaded_modules[language] = module
+        
+        module.gnuplot(core_count, files, results[language])
+    
+    plot(results)
 
 if __name__ == "__main__": main()

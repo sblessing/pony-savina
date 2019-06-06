@@ -1,5 +1,6 @@
 import os
 import re
+from runners.output_parser import SavinaOutputParser
 
 def setup(oBenchmarkRunner, cores):
   classfiles = []
@@ -26,6 +27,9 @@ def setup(oBenchmarkRunner, cores):
   nested_args = []
 
   for classfile in classfiles:
-    nested_args.append([["-cp", "savina-jvm/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"], classfile])
+    nested_args.append([["-cp", "savina-jvm/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"], classfile, "-Dhj.numWorkers=" + str(cores)])
 
   oBenchmarkRunner.configure("akka", "/usr/bin/java", nested_args)
+
+def gnuplot(cores, files, results):
+  SavinaOutputParser(files).parse(cores, results)
