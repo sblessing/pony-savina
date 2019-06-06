@@ -242,22 +242,24 @@ class BenchmarkRunner:
           output = path + basename(normpath(arg[-1]))
           self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
 
-def plot(results):
-  shutil.rmtree('output/plots', ignore_errors=True)
+def plot(timestamp, results):
+  basepath = "output/%s/plots" % (timestamp)
+  shutil.rmtree(basepath, ignore_errors=True)
 
   with open('plot_config.json') as json_file:  
     data = json.load(json_file)
 
     for language in results.keys():
       for bench in results[language].keys():
-        path = "output/plots/" + data["benchmarks"][data[bench]].replace(" ", "_") + ".txt"
+        
+        path = basepath + "/" + data["benchmarks"][data[bench]].replace(" ", "_") + ".txt"
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         with open(path, "a+") as gnuplot_source:
           for index, median in enumerate(results[language][bench]):
             print("%s,%i,%s" % (language, index + 1, median), file=gnuplot_source)
     
-    for root, dirs, files in os.walk("output/plots/"):
+    for root, dirs, files in os.walk(basepath):
       for source in files:
         sourcefile = os.path.splitext(source)[0]
         sourcepath = os.path.join(root, source)
@@ -297,9 +299,9 @@ def plot(results):
           gnuplot_file.flush()
           subprocess.Popen(["gnuplot", outpath]).wait()
     
-  for item in os.listdir("output/plots"):
+  for item in os.listdir(basepath):
     if item.endswith(".txt"):
-        os.remove(os.path.join("output/plots", item))
+        os.remove(os.path.join(basepath, item))
 
 def main():
   numactl = False
@@ -345,7 +347,7 @@ def main():
       cores.enable(all = True)
 
   if args.plot:
-    output = defaultdict(lambda: defaultdict(list))
+    output = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     for root, dirs, files in os.walk("output/"):
       if root != "output/plots":
@@ -353,22 +355,23 @@ def main():
           if file != '.DS_Store':
             path = os.path.join(root, file)
             components  = path.split("/")
-            output[int(components[3])][components[2]].append(path)
-
-    results = defaultdict(lambda: defaultdict(lambda: [0.0] * max(output.keys())))
+            output[components[1]][int(components[3])][components[2]].append(path)
     
-    for core_count in output.keys():
-      for language in output[core_count]:
-        files = output[core_count][language]
+    for timestamp in output.keys():
+      results = defaultdict(lambda: defaultdict(lambda: [0.0] * max(output[timestamp].keys())))
 
-        try:
-          module = loaded_modules[language]
-        except KeyError:
-          module = importlib.import_module("." + language, package="runners")
-          loaded_modules[language] = module
+      for core_count in output[timestamp].keys():
+        for language in output[timestamp][core_count]:
+          files = output[timestamp][core_count][language]
+
+          try:
+            module = loaded_modules[language]
+          except KeyError:
+            module = importlib.import_module("." + language, package="runners")
+            loaded_modules[language] = module
         
-        module.gnuplot(core_count, files, results[language])
+          module.gnuplot(core_count, files, results[language])
     
-    plot(results)
+      plot(timestamp, results)
 
 if __name__ == "__main__": main()
