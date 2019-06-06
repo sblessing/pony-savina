@@ -27,7 +27,7 @@ def setup(oBenchmarkRunner, cores):
   nested_args = []
 
   for classfile in classfiles:
-    nested_args.append([["-Dhj.numWorkers=" + str(cores), "-cp", "savina-jvm/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"], classfile)
+    nested_args.append([["-Dhj.numWorkers=" + str(cores), "-cp", "savina-jvm/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"], classfile])
 
   oBenchmarkRunner.configure("akka", "/usr/bin/java", nested_args)
 
