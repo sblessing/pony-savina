@@ -6,6 +6,7 @@ import importlib
 import stat
 import datetime
 import json
+import shutil
 from pathlib import Path 
 from tqdm import tqdm
 from os.path import normpath, basename
@@ -242,10 +243,63 @@ class BenchmarkRunner:
           self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
 
 def plot(results):
-  for i in results.keys():
-    print(i + " -->")
-    for j in results[i]:
-      print("\t" + j + ": " + ", ".join(str(k) for k in results[i][j]))
+  shutil.rmtree('output/plots', ignore_errors=True)
+
+  with open('plot_config.json') as json_file:  
+    data = json.load(json_file)
+
+    for language in results.keys():
+      for bench in results[language].keys():
+        path = "output/plots/" + data["benchmarks"][data[bench]].replace(" ", "_") + ".txt"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        with open(path, "a+") as gnuplot_source:
+          for index, median in enumerate(results[language][bench]):
+            print("%s,%i,%s" % (language, index + 1, median), file=gnuplot_source)
+    
+    for root, dirs, files in os.walk("output/plots/"):
+      for source in files:
+        sourcefile = os.path.splitext(source)[0]
+        sourcepath = os.path.join(root, source)
+        outfile = "gnuplot_" + source
+        outpath = os.path.join(root, outfile)        
+
+        with open(outpath, "w+") as gnuplot_file:
+          print("set terminal pdf", file=gnuplot_file)
+          print("set output \"%s\"" % (sourcepath.replace(".txt", ".pdf")), file=gnuplot_file)
+          print("set xlabel \"Cores\"", file=gnuplot_file)
+          print("set ylabel \"Execution Time (Milliseconds, Median)\"", file=gnuplot_file)
+          print("set xtics 4", file=gnuplot_file)
+          print("set datafile separator \",\"", file=gnuplot_file)
+          print("set title \"%s\"" % (sourcefile.replace("_", " ")), file=gnuplot_file)
+          print("set key outside", file=gnuplot_file)
+
+          plot_commands = []
+
+          for language in results.keys():
+            version = data["versions"][language]
+            color = data["colors"][language]
+
+            found = False
+
+            for bench in results[language].keys():
+              if data["benchmarks"][data[bench]].replace(" ", "_") + ".txt" == source:
+                found = True
+                break
+
+            if found:
+              plot_commands.append(
+                "'%s\' using 2:(stringcolumn(1) eq \"%s\" ? $3 : 1/0) with %s title '%s %s' lt rgb '%s' lw 2" % 
+                  (sourcepath, language, "lines", language, version, color)
+              )
+            
+          print("plot " + ",\\\n".join(plot_commands), file=gnuplot_file)
+          gnuplot_file.flush()
+          subprocess.Popen(["gnuplot", outpath]).wait()
+    
+  for item in os.listdir("output/plots"):
+    if item.endswith(".txt"):
+        os.remove(os.path.join("output/plots", item))
 
 def main():
   numactl = False
@@ -294,10 +348,12 @@ def main():
     output = defaultdict(lambda: defaultdict(list))
 
     for root, dirs, files in os.walk("output/"):
-      for file in files:
-        path = os.path.join(root, file)
-        components  = path.split("/")
-        output[int(components[3])][components[2]].append(path)
+      if root != "output/plots":
+        for file in files:
+          if file != '.DS_Store':
+            path = os.path.join(root, file)
+            components  = path.split("/")
+            output[int(components[3])][components[2]].append(path)
 
     results = defaultdict(lambda: defaultdict(lambda: [0.0] * max(output.keys())))
     
