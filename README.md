@@ -5,6 +5,7 @@ Pony: Savina Benchmark Suite (Actor Benchmarks)
   * Pony 0.28.0
   * CAF 0.16.3
   * Python >= 3.5
+  * gnuplot
   * tqdm
 
             pip install tqdm
@@ -36,4 +37,7 @@ Pony: Savina Benchmark Suite (Actor Benchmarks)
 
 ## Run Benchmarks
 
-        python run.py -r [pony|caf|akka] [--hyperthreads]
+        python run.py [-r|--run pony|caf|akka] [-l|--hyperthreads] [-p|--plot]
+
+        -r | --run can be combined, that is all runners can be invoked in one go.
+        -p | --plot can be used even after having run the benchmarks
