@@ -18,7 +18,7 @@ class iso Quicksort is AsyncActorBenchmark
     let random = SimpleRand(_seed)
 
     for i in Range[U64](0, _dataset) do
-      data.push((random.nextLong() % _max).abs())
+      data.push(random.nextLong() % _max)
     end
 
     Sorter(c, None, PositionInitial, _threshold, _dataset).sort(consume data)
@@ -96,7 +96,7 @@ actor Sorter
       end
     end
 
-    (consume l, consume r, consume p)
+    (consume l, consume p, consume r)
 
   fun ref _sort_sequentially(input: Array[U64] val): Array[U64] val ? =>
     let size = input.size()
@@ -110,13 +110,13 @@ actor Sorter
     
     try
       let left_sorted = _sort_sequentially(pivots._1)?
-      let right_sorted = _sort_sequentially(pivots._2)?
+      let right_sorted = _sort_sequentially(pivots._3)?
 
       recover 
         let sorted = Array[U64] 
-        sorted.concat(left_sorted.values())
-        sorted.concat(pivots._3.values())
-        sorted.concat(right_sorted.values())
+        sorted.concat(left_sorted.values() where len = left_sorted.size())
+        sorted.concat(pivots._2.values() where len = pivots._2.size())
+        sorted.concat(right_sorted.values() where len = right_sorted.size())
 
         consume sorted
       end
@@ -147,9 +147,9 @@ actor Sorter
         let pivots = _pivotize(input, pivot)
 
         Sorter(_bench, this, PositionLeft, _threshold, _length).sort(pivots._1)
-        Sorter(_bench, this, PositionRight, _threshold, _length).sort(pivots._2)
+        Sorter(_bench, this, PositionRight, _threshold, _length).sort(pivots._3)
 
-        _result = pivots._3
+        _result = pivots._2
         _fragments = _fragments + 1
       end
     end
