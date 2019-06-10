@@ -352,7 +352,7 @@ def main():
     for root, dirs, files in os.walk("output/"):
       if root != "output/plots":
         for file in files:
-          if file != '.DS_Store':
+          if file != '.DS_Store' and not file.endswith(".pdf"):
             path = os.path.join(root, file)
             components  = path.split("/")
             output[components[1]][int(components[3])][components[2]].append(path)
