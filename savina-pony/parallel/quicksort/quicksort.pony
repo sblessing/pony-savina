@@ -11,7 +11,7 @@ class iso Quicksort is AsyncActorBenchmark
     _dataset = dataset
     _seed = seed
     _max = max
-    _threshold = max
+    _threshold = threshold
 
   fun box apply(c: AsyncBenchmarkCompletion) =>
     let data = recover Array[U64] end
