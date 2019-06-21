@@ -242,9 +242,10 @@ class BenchmarkRunner:
           output = path + basename(normpath(arg[-1]))
           self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
 
-def plot(timestamp, results):
+def plot(timestamp, results, measured_core_count):
   basepath = "output/%s/plots" % (timestamp)
   shutil.rmtree(basepath, ignore_errors=True)
+  factor = measured_core_count / 64
 
   with open('plot_config.json') as json_file:  
     data = json.load(json_file)
@@ -271,7 +272,12 @@ def plot(timestamp, results):
           print("set output \"%s\"" % (sourcepath.replace(".txt", ".pdf")), file=gnuplot_file)
           print("set xlabel \"Cores\"", file=gnuplot_file)
           print("set ylabel \"Execution Time (Milliseconds, Median)\"", file=gnuplot_file)
-          print("set xtics 4", file=gnuplot_file)
+
+          if factor < 1:
+            print("set xtics %d" % (int(4*factor)), file=gnuplot_file)
+          else:
+            print("set xtics 4", file=gnuplot_file)
+
           print("set datafile separator \",\"", file=gnuplot_file)
           print("set title \"%s\"" % (sourcefile.replace("_", " ")), file=gnuplot_file)
           print("set key outside", file=gnuplot_file)
@@ -322,6 +328,7 @@ def main():
     numactl = True
 
   loaded_modules = {}
+  measured_cores = []
 
   if args.module:
     for i in args.module:
@@ -358,7 +365,9 @@ def main():
             output[components[1]][int(components[3])][components[2]].append(path)
     
     for timestamp in output.keys():
-      results = defaultdict(lambda: defaultdict(lambda: [0.0] * max(output[timestamp].keys())))
+      measured_cores.append(max(output[timestamp].keys()))
+
+      results = defaultdict(lambda: defaultdict(lambda: [0.0] * measured_cores[-1]))
 
       for core_count in output[timestamp].keys():
         for language in output[timestamp][core_count]:
@@ -372,6 +381,6 @@ def main():
         
           module.gnuplot(core_count, files, results[language])
     
-      plot(timestamp, results)
+      plot(timestamp, results, max(measured_cores))
 
 if __name__ == "__main__": main()

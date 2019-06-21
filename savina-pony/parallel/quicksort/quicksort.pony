@@ -53,34 +53,6 @@ actor Sorter
     _fragments = 0
     _result = None
 
-  fun ref _validate(): Bool =>
-    match _result
-    | let data: Array[U64] val =>
-      if data.size() != _length.usize() then
-        return false
-      end
-      
-      try
-        var current: U64 = data(0)?
-        var next: USize = 1
-
-        while next < _length.usize() do
-          var loop_value = data(next)?
-
-          if loop_value < current then
-            return false
-          end
-
-          current = loop_value
-          next = next + 1
-        end
-      else
-        false
-      end
-    end
-
-    true
-
   fun ref _pivotize(input: Array[U64] val, pivot: U64): (Array[U64] val, Array[U64] val, Array[U64] val) =>
     let l = recover Array[U64] end
     let r = recover Array[U64] end
@@ -113,7 +85,7 @@ actor Sorter
       let right_sorted = _sort_sequentially(pivots._3)?
 
       recover 
-        let sorted = Array[U64] 
+        let sorted = Array[U64](size)
         sorted.concat(left_sorted.values() where len = left_sorted.size())
         sorted.concat(pivots._2.values() where len = pivots._2.size())
         sorted.concat(right_sorted.values() where len = right_sorted.size())

@@ -15,8 +15,6 @@ class iso Filterbank is AsyncActorBenchmark
     _columns = columns
     _sinkrate = sinkrate
     _width = columns.usize()
-    _channels = channels
-    
     _channels = U64(2).max(U64(channels).min(33))
   
   fun box apply(c: AsyncBenchmarkCompletion) =>

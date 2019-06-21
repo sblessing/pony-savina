@@ -190,8 +190,10 @@ class OutputManager
       end
     end
 
-  fun ref summarize(benchmark: AsyncActorBenchmark tag) ? =>
-     _print(_results(benchmark)?())
+  fun ref summarize() =>
+     match _incoming
+     | let n: AsyncActorBenchmark tag => try _print(_results(n)?()) ; _incoming = None end
+     end
     
 actor Savina
   let _benchmarks: List[(U64, AsyncActorBenchmark iso)] iso
@@ -200,6 +202,7 @@ actor Savina
   var _start: U64
   var _end: U64
   var _running: Bool
+  var _summarize: Bool
 
   new create(env: Env, runner: BenchmarkRunner, parseable: Bool) =>
     _benchmarks = recover List[(U64, AsyncActorBenchmark iso)] end
@@ -208,30 +211,35 @@ actor Savina
     _start = 0
     _end = 0
     _running = false
+    _summarize = false
 
     runner.benchmarks(this)
   
   fun ref _next() =>
     if not _running then
+      if _summarize then
+        _output.summarize() 
+        _summarize = false
+      end
+
       try
         // Trigger GC next time the Savina actor is scheduled
         @pony_triggergc[None](@pony_ctx[Pointer[None]]())
 
         _start = Time.nanos()
     
-        recover 
-          (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
+        _summarize = 
+          recover 
+            (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
+             
+            _output.prepare(run) ; run(this) 
 
-          _output.prepare(run)
-          
-          run(this)
-   
-          if (i = i - 1) > 1 then
-            _benchmarks.unshift((i, consume run))
-          else
-            _output.summarize(run) ?
+            if (i = i - 1) > 1 then
+              _benchmarks.unshift((i, consume run))
+            end          
+
+            i == 0
           end
-        end
 
         _running = true
       end
