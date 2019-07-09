@@ -240,12 +240,28 @@ class BenchmarkRunner:
       else:
         for arg in self._args:
           output = path + basename(normpath(arg[-1]))
-          self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])   
+          self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])  
+
+def write_header_data(sourcepath, title, gnuplot_file, factor):
+  print("set terminal pdf", file=gnuplot_file)
+  print("set output \"%s\"" % (sourcepath.replace(".txt", ".pdf")), file=gnuplot_file)
+  print("set xlabel \"Cores\"", file=gnuplot_file)
+  print("set ylabel \"Execution Time (Milliseconds, Median)\"", file=gnuplot_file)
+
+  if factor < 1:
+    print("set xtics %d" % (int(4*factor)), file=gnuplot_file)
+  else:
+    print("set xtics 4", file=gnuplot_file)
+
+  print("set datafile separator \",\"", file=gnuplot_file)
+  print("set title \"%s\"" % (title), file=gnuplot_file)
+  print("set key outside", file=gnuplot_file) 
 
 def plot(timestamp, results, measured_core_count):
   basepath = "output/%s/plots" % (timestamp)
   shutil.rmtree(basepath, ignore_errors=True)
   factor = measured_core_count / 64
+  categories = defaultdict(list)
 
   with open('plot_config.json') as json_file:  
     data = json.load(json_file)
@@ -253,7 +269,12 @@ def plot(timestamp, results, measured_core_count):
     for language in results.keys():
       for bench in results[language].keys():
         
-        path = basepath + "/" + data["benchmarks"][data[bench]].replace(" ", "_") + ".txt"
+        path = basepath + "/" + data["benchmarks"][data[bench]]["name"].replace(" ", "_") + ".txt"
+        paths = categories[data["benchmarks"][data[bench]]["category"]]
+
+        if path not in paths:
+          paths.append(path)
+
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         with open(path, "a+") as gnuplot_source:
@@ -268,19 +289,7 @@ def plot(timestamp, results, measured_core_count):
         outpath = os.path.join(root, outfile)        
 
         with open(outpath, "w+") as gnuplot_file:
-          print("set terminal pdf", file=gnuplot_file)
-          print("set output \"%s\"" % (sourcepath.replace(".txt", ".pdf")), file=gnuplot_file)
-          print("set xlabel \"Cores\"", file=gnuplot_file)
-          print("set ylabel \"Execution Time (Milliseconds, Median)\"", file=gnuplot_file)
-
-          if factor < 1:
-            print("set xtics %d" % (int(4*factor)), file=gnuplot_file)
-          else:
-            print("set xtics 4", file=gnuplot_file)
-
-          print("set datafile separator \",\"", file=gnuplot_file)
-          print("set title \"%s\"" % (sourcefile.replace("_", " ")), file=gnuplot_file)
-          print("set key outside", file=gnuplot_file)
+          write_header_data(sourcepath, sourcefile.replace("_", " "), gnuplot_file, factor)
 
           plot_commands = []
 
@@ -291,7 +300,7 @@ def plot(timestamp, results, measured_core_count):
             found = False
 
             for bench in results[language].keys():
-              if data["benchmarks"][data[bench]].replace(" ", "_") + ".txt" == source:
+              if data["benchmarks"][data[bench]]["name"].replace(" ", "_") + ".txt" == source:
                 found = True
                 break
 
@@ -304,10 +313,45 @@ def plot(timestamp, results, measured_core_count):
           print("plot " + ",\\\n".join(plot_commands), file=gnuplot_file)
           gnuplot_file.flush()
           subprocess.Popen(["gnuplot", outpath]).wait()
+
+    # For every category and language produce a dot cloud
+    for language in results.keys():
+      for category in data["categories"].keys():
+        samples = defaultdict(list)
+
+        for inputfile in categories[category]:
+          with open(inputfile, "r") as source:
+            for line in source:
+              components = line.split(",")
+
+              if components[0] == language:
+                samples[components[1]].append(components[2].rstrip())
+
+        name = data["categories"][category]
+        sourcepath = ("%s/%s_%s.txt") % (basepath, language, name)
+            
+        with open(sourcepath, "w+") as outfile:
+          for x in samples.keys():
+            for y in samples[x]:
+              print("%s,%s" % (x, y), file=outfile)
+          
+          outfile.flush()
+
+          # Generate the plot
+          outpath = "%s/gnuplot_%s_%s.txt" % (basepath, language, category)
+
+          with open(outpath, "w+") as gnuplot_file:
+            write_header_data(sourcepath, "%s (%s)" % (language, name), gnuplot_file, factor)
+
+            print("plot '%s' using 1:2 with points notitle pt 7 ps 0.1 lc rgb '%s'" % 
+              (sourcepath, data["colors"][language]), file=gnuplot_file)
+
+            gnuplot_file.flush()
+            subprocess.Popen(["gnuplot", outpath]).wait()
     
   for item in os.listdir(basepath):
     if item.endswith(".txt"):
-        os.remove(os.path.join(basepath, item))
+       os.remove(os.path.join(basepath, item))
 
 def main():
   numactl = False
