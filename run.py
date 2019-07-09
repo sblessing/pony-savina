@@ -7,6 +7,8 @@ import stat
 import datetime
 import json
 import shutil
+import statistics
+import numpy as np
 from pathlib import Path 
 from tqdm import tqdm
 from os.path import normpath, basename
@@ -325,9 +327,11 @@ def plot(timestamp, results, measured_core_count):
               components = line.split(",")
 
               if components[0] == language:
-                samples[components[1]].append(components[2].rstrip())
+                samples[components[1]].append(float(components[2].rstrip()))
 
         name = data["categories"][category]
+        color = data["colors"][language]
+        version = data["versions"][language]
         sourcepath = ("%s/%s_%s.txt") % (basepath, language, name)
             
         with open(sourcepath, "w+") as outfile:
@@ -337,17 +341,27 @@ def plot(timestamp, results, measured_core_count):
           
           outfile.flush()
 
-          # Generate the plot
-          outpath = "%s/gnuplot_%s_%s.txt" % (basepath, language, category)
+        regressionpath = ("%s/%s_%s_regression.txt") % (basepath, language, name)
 
-          with open(outpath, "w+") as gnuplot_file:
-            write_header_data(sourcepath, "%s (%s)" % (language, name), gnuplot_file, factor)
+        with open(regressionpath, "w+") as regression:
+          for x in samples.keys():
+            print("%s,%s" % (x, statistics.median(samples[x])), file=regression)
+          
+          regression.flush()
 
-            print("plot '%s' using 1:2 with points notitle pt 7 ps 0.1 lc rgb '%s'" % 
-              (sourcepath, data["colors"][language]), file=gnuplot_file)
+        # Generate the plot
+        outpath = "%s/gnuplot_%s_%s.txt" % (basepath, language, category)
 
-            gnuplot_file.flush()
-            subprocess.Popen(["gnuplot", outpath]).wait()
+        with open(outpath, "w+") as gnuplot_file:
+          write_header_data(sourcepath, "%s (%s)" % (language, name), gnuplot_file, factor)
+
+          print("""
+            plot '%s' using 1:2 with points notitle pt 7 ps 0.1 lc rgb '%s',\\
+                 '%s' using 1:2 with lines title '%s %s' lt rgb '#000000' lw 2
+            """ % (sourcepath, color, regressionpath, language, version), file=gnuplot_file)
+
+          gnuplot_file.flush()
+          subprocess.Popen(["gnuplot", outpath]).wait()
     
   for item in os.listdir(basepath):
     if item.endswith(".txt"):
@@ -365,7 +379,7 @@ def main():
 
   if os.geteuid() != 0 and args.module:
     print("""
-     Running wihtout root privileges. Falling back to `numactl` rather than
+     Running without root privileges. Falling back to `numactl` rather than
      hardware CPU offlining.
     """)
 
