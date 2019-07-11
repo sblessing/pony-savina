@@ -317,8 +317,11 @@ def plot(timestamp, results, measured_core_count):
           subprocess.Popen(["gnuplot", outpath]).wait()
 
     # For every category and language produce a dot cloud
-    for language in results.keys():
-      for category in data["categories"].keys():
+    for category in data["categories"].keys():
+      regression_plots = []
+      name = data["categories"][category]
+
+      for language in results.keys():
         samples = defaultdict(list)
 
         for inputfile in categories[category]:
@@ -327,9 +330,8 @@ def plot(timestamp, results, measured_core_count):
               components = line.split(",")
 
               if components[0] == language:
-                samples[components[1]].append(float(components[2].rstrip()))
+                samples[float(components[1])].append(float(components[2].rstrip()))
 
-        name = data["categories"][category]
         color = data["colors"][language]
         version = data["versions"][language]
         sourcepath = ("%s/%s_%s.txt") % (basepath, language, name)
@@ -343,7 +345,7 @@ def plot(timestamp, results, measured_core_count):
 
         regressionpath = ("%s/%s_%s_regression.txt") % (basepath, language, name)
 
-        with open(regressionpath, "w+") as regression:
+        with open(regressionpath, "w+") as regression:   
           for x in samples.keys():
             print("%s,%s" % (x, statistics.median(samples[x])), file=regression)
           
@@ -352,17 +354,28 @@ def plot(timestamp, results, measured_core_count):
         # Generate the plot
         outpath = "%s/gnuplot_%s_%s.txt" % (basepath, language, category)
 
+        regression_plot = "'%s' using 1:2 with lines title '%s %s' lt rgb '%s' lw 2" % (regressionpath, language, version, color)
+        regression_plots.append(regression_plot)
+
         with open(outpath, "w+") as gnuplot_file:
           write_header_data(sourcepath, "%s (%s)" % (language, name), gnuplot_file, factor)
 
-          print("""
-            plot '%s' using 1:2 with points notitle pt 7 ps 0.1 lc rgb '%s',\\
-                 '%s' using 1:2 with lines title '%s %s' lt rgb '#000000' lw 2
-            """ % (sourcepath, color, regressionpath, language, version), file=gnuplot_file)
+          print("plot '%s' using 1:2 with points notitle pt 7 ps 0.1 lc rgb '%s', %s" % (sourcepath, color, regression_plot), file=gnuplot_file)
 
           gnuplot_file.flush()
           subprocess.Popen(["gnuplot", outpath]).wait()
-    
+      
+      # Generate the combined regression plot    
+      outpath = "%s/gnuplot_%s.txt" % (basepath, name)
+
+      with open(outpath, "w+") as combined_file:
+        write_header_data("%s/%s.pdf" % (basepath, name), name, combined_file, factor)
+        
+        print("plot " + ", ".join(regression_plots), file=combined_file)
+        
+        combined_file.flush()
+        subprocess.Popen(["gnuplot", outpath]).wait()
+
   for item in os.listdir(basepath):
     if item.endswith(".txt"):
        os.remove(os.path.join(basepath, item))
