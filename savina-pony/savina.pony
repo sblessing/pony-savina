@@ -33,7 +33,7 @@ use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
 //use "parallel/uct"
-use "chat"
+use "parallel/chat"
 
 actor Main is BenchmarkRunner
   new create(env: Env) =>
