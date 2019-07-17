@@ -2,7 +2,7 @@ use "cli"
 use "collections"
 use "time"
 use "random"
-use "../util"
+use "../../util"
 
 type ClientMap is Map[U64, Client]
 type FriendSet is SetIs[Client]
