@@ -259,8 +259,8 @@ class iso ChatApp is AsyncActorBenchmark
     _init(env)
 
   fun ref _init(env: Env) =>
-    try
-      let spec = 
+    //try
+      /*let spec = 
         recover iso
           CommandSpec.leaf("lola",
             """
@@ -306,16 +306,16 @@ class iso ChatApp is AsyncActorBenchmark
           )?
         end
 
-      let command = Arguments(consume spec, env) ?
+      let command = Arguments(consume spec, env) ?*/
 
-      _clients = command.option("clients").u64()
-      _turns = command.option("turns").u64()
+      _clients = 2048//command.option("clients").u64()
+      _turns = 20//command.option("turns").u64()
 
-      let directories: USize = command.option("directories").u64().usize()
-      let nothing: U64 = command.option("nothing").u64()
-      let post: U64 = command.option("post").u64()
-      let leave: U64 = command.option("leave").u64()
-      let invite: U64 = command.option("invite").u64()
+      let directories: USize = USize(16)//command.option("directories").u64().usize()
+      let nothing: U64 = 50//command.option("nothing").u64()
+      let post: U64 = 80//command.option("post").u64()
+      let leave: U64 =25 //command.option("leave").u64()
+      let invite: U64 = 25//command.option("invite").u64()
 
       _factory = recover BehaviorFactory(nothing, post, leave, invite) end
 
@@ -328,7 +328,7 @@ class iso ChatApp is AsyncActorBenchmark
         
         dirs
       end
-    end
+    //end
 
   fun box apply(c: AsyncBenchmarkCompletion) => 
     match (_factory, _directories)
