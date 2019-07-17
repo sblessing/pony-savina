@@ -82,3 +82,12 @@ class CongruentialRand is Random
       _has_next_gaussian = true
       v1 * multiplier
     end
+
+class DiceRoll
+  let _random: SimpleRand
+
+  new create(seed: U64) =>
+    _random = SimpleRand(seed)
+
+  fun ref apply(probability: U64): Bool =>
+    _random.nextInt(100) < probability.u32()

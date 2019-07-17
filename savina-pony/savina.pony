@@ -33,6 +33,7 @@ use "parallel/sieve"
 //use "parallel/sor"
 use trapezoid = "parallel/trapezoid"
 //use "parallel/uct"
+use "chat"
 
 actor Main is BenchmarkRunner
   new create(env: Env) =>
@@ -62,7 +63,7 @@ actor Main is BenchmarkRunner
 
     Savina(env, this, cmd.option("parseable").bool())
 
-  fun tag benchmarks(bench: Savina) =>
+  fun tag benchmarks(bench: Savina, env: Env) =>
     bench(12, banking.Banking(1000, 50000))
     bench(12, barber.SleepingBarber(5000, 1000, 1000, 1000))
     bench(12, bndbuffer.BndBuffer(50, 40, 40, 1000, 25, 25))
@@ -93,3 +94,4 @@ actor Main is BenchmarkRunner
     ////bench(Sor)
     bench(12, trapezoid.Trapezoid(10000000, 100, 1, 5))
     //bench(12, Uct(200000, 500, 100, 10, 50))
+    bench(12, ChatApp(env))

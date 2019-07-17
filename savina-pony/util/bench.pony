@@ -8,7 +8,7 @@ trait AsyncActorBenchmark
   fun tag name(): String
 
 interface tag BenchmarkRunner
-  fun tag benchmarks(bench: Savina)
+  fun tag benchmarks(bench: Savina, env: Env)
 
 interface tag AsyncBenchmarkCompletion 
   be complete()
@@ -213,7 +213,7 @@ actor Savina
     _running = false
     _summarize = false
 
-    runner.benchmarks(this)
+    runner.benchmarks(this, env)
   
   fun ref _next() =>
     if not _running then
