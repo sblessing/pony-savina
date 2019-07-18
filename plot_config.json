@@ -73,8 +73,13 @@
   "Quicksort": "21",
   "Radixsort": "22",
   "Recursive Matrix Multiplication": "20",
+<<<<<<< HEAD
 	"Trapezoid": "28",
 	"Chat App": "31",
+=======
+  "Trapezoid": "28",
+  "Chat App": "31",
+>>>>>>> e3bfa2abfeed564a05bb54812a6af8b968b11e4e
 	"benchmarks": {
 		"01": { "name": "Ping Pong", "category": "01" },
 		"02": { "name": "Thread Ring", "category": "01" },
