@@ -3,6 +3,7 @@ use "collections"
 use "time"
 use "random"
 use "../../util"
+use "math"
 
 type ClientMap is Map[U64, Client]
 type FriendSet is SetIs[Client]
@@ -22,11 +23,13 @@ primitive Arguments
 primitive Post
 primitive Leave
 primitive Invite
+primitive Compute
 
 type Action is
   ( Post
   | Leave
   | Invite 
+  | Compute
   | None
   )
 
@@ -46,20 +49,20 @@ class val BehaviorFactory
     let dice = DiceRoll(Time.millis())
     let actions = List[Action]
 
-    if dice(_nothing) then
-      actions.push(None)
-    else
-      if dice(_post) then
-       actions.push(Post)
-      else 
-        if dice(_leave) then
-          actions.push(Leave)
-        end
-
-        if dice(_invite) then
-          actions.push(Invite)
-        end
+    if dice(_post) then
+      actions.push(Post)
+    else 
+      if dice(_leave) then
+        actions.push(Leave)
       end
+
+      if dice(_invite) then
+        actions.push(Invite)
+      end
+    end
+
+    if actions.size() == 0 then
+      actions.push(Compute)
     end
     
     actions.values()
@@ -120,7 +123,7 @@ actor Client
     chat.acknowledge()
 
   be act(behavior: BehaviorFactory) =>
-    let index = SimpleRand(Time.millis()).next().usize() % _chats.size()
+    let index = SimpleRand(42).next().usize() % _chats.size()
     var i: USize = 0
 
     // Pony has no implicit conversion from Seq toArray.
@@ -138,6 +141,7 @@ actor Client
       match action
       | Post => chat.post()
       | Leave => chat.leave(this) ; _chats.unset(chat)
+      | Compute => Fibonacci(35)
       | Invite => 
         let created = Chat
         _invite(created)
@@ -150,7 +154,7 @@ actor Client
           f.push(friend)
         end
 
-        let s = Rand(Time.millis())
+        let s = Rand(42)
         s.shuffle[Client](f)
 
         for k in Range[USize](0, s.next().usize() % _friends.size()) do
@@ -259,7 +263,7 @@ class iso ChatApp is AsyncActorBenchmark
     _init(env)
 
   fun ref _init(env: Env) =>
-    try
+    /*try
       let spec = 
         recover iso
           CommandSpec.leaf("lola",
@@ -306,16 +310,16 @@ class iso ChatApp is AsyncActorBenchmark
           )?
         end
 
-      let command = Arguments(consume spec, env) ?
+      let command = Arguments(consume spec, env) ? */
 
-      _clients = command.option("clients").u64()
-      _turns = command.option("turns").u64()
+      _clients = 32768 //command.option("clients").u64()
+      _turns = 20//command.option("turns").u64()
 
-      let directories: USize = command.option("directories").u64().usize()
-      let nothing: U64 = command.option("nothing").u64()
-      let post: U64 = command.option("post").u64()
-      let leave: U64 = command.option("leave").u64()
-      let invite: U64 = command.option("invite").u64()
+      let directories: USize = USize(8192)//command.option("directories").u64().usize()
+      let nothing: U64 = 50 //command.option("nothing").u64()
+      let post: U64 = 80 //command.option("post").u64()
+      let leave: U64 = 25 //command.option("leave").u64()
+      let invite: U64 = 25 //command.option("invite").u64()
 
       _factory = recover BehaviorFactory(nothing, post, leave, invite) end
 
@@ -328,7 +332,7 @@ class iso ChatApp is AsyncActorBenchmark
         
         dirs
       end
-    end
+    //end
 
   fun box apply(c: AsyncBenchmarkCompletion) => 
     match (_factory, _directories)

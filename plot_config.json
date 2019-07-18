@@ -74,6 +74,7 @@
   "Radixsort": "22",
   "Recursive Matrix Multiplication": "20",
 	"Trapezoid": "28",
+	"Chat App": "31",
 	"benchmarks": {
 		"01": { "name": "Ping Pong", "category": "01" },
 		"02": { "name": "Thread Ring", "category": "01" },
@@ -104,7 +105,8 @@
 		"27": { "name": "Online Facility Location", "category": "03" },
 		"28": { "name": "Trapezoidal Approximation", "category": "03" },
 		"29": { "name": "Precise Pi Computation", "category": "03" },
-		"30": { "name": "Successive Over-Relaxation", "category": "03" }
+		"30": { "name": "Successive Over-Relaxation", "category": "03" },
+		"31": { "name": "Chat App", "category": "03" }
   },
   "categories": {
     "01": "Micro",
