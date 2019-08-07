@@ -1,2 +1,2 @@
-def setup(oBenchmarkRunner, cores):
+def setup(oBenchmarkRunner, cores, memory):
   print("Erlang!")

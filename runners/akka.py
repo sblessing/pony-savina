@@ -2,7 +2,7 @@ import os
 import re
 from runners.output_parser import SavinaOutputParser
 
-def setup(oBenchmarkRunner, cores):
+def setup(oBenchmarkRunner, cores, memory):
   classfiles = []
 
   exclude = [

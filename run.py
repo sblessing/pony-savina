@@ -188,6 +188,7 @@ class BenchmarkRunner:
     self._name = None
     self._timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
     self._executables = []
+    self._memory = False
     self._args = []
     self._argument_driven = False
   
@@ -223,14 +224,18 @@ class BenchmarkRunner:
       else:
         command = ["numactl", "--physcpubind=" + ",".join(str(i) for i in cpubind), "--", exe]
 
+      if self._memory:
+        command = ["/usr/bin/time", "-f", "===\nmemory: %MKB"] + command
+
       bench = subprocess.Popen(command  + args, stdout=outputfile)
       bench.wait()
 
-  def configure(self, name, path, args = [], exclude = []):
+  def configure(self, name, path, memory, args = [], exclude = []):
     self._name = name
     self._args = args
     self._argument_driven = False
     self._executables = self._get_executables(path, exclude) 
+    self._memory = memory
   
   def execute(self, cores, cpubind):
     path = self._create_directory(cores)
@@ -253,7 +258,7 @@ def write_header_data(sourcepath, title, gnuplot_file, factor):
   if factor < 1:
     print("set xtics %d" % (int(4*factor)), file=gnuplot_file)
   else:
-    print("set xtics 4", file=gnuplot_file)
+    print("set xtics 8", file=gnuplot_file)
 
   print("set datafile separator \",\"", file=gnuplot_file)
   print("set title \"%s\"" % (title), file=gnuplot_file)
@@ -386,7 +391,8 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-l', '--hyperthreads', dest='hyperthreads', action='store_true')
   parser.add_argument('-r', '--run', dest='module', action='append')
-  parser.add_argument('-n', '--numactl', dest="numactl", action='store_true')
+  parser.add_argument('-n', '--numactl', dest='numactl', action='store_true')
+  parser.add_argument('-m', '--memory', dest='memory', action='store_true')
   parser.add_argument('-p', '--plot', dest='plot', action='store_true')
   args = parser.parse_args()
 
@@ -400,6 +406,12 @@ def main():
 
   loaded_modules = {}
   measured_cores = []
+
+  if args.memory:
+    print("""
+      Running with -m,--memory to measure memory footprints. Execution times
+      may be biased and not be reliable.
+    """)
 
   if args.module:
     for i in args.module:
