@@ -225,10 +225,11 @@ class BenchmarkRunner:
         command = ["numactl", "--physcpubind=" + ",".join(str(i) for i in cpubind), "--", exe]
 
       if self._memory:
-        command = ["/usr/bin/time", "-f", "===\nmemory: %MKB"] + command
-
-      bench = subprocess.Popen(command  + args, stdout=outputfile)
-      bench.wait()
+        command = ["/usr/bin/time", "-f", "%M KB"] + command
+        
+      with open(output + "_memory.txt", "w+") as memorylog:     
+        bench = subprocess.Popen(command  + args, stdout=outputfile, stderr=memorylog)   
+        bench.wait()
 
   def configure(self, name, path, memory, args = [], exclude = []):
     self._name = name
