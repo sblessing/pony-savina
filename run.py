@@ -430,7 +430,7 @@ def main():
           core_count = core_count + 1
 
           for module in loaded_modules.values():
-            module.setup(runner, core_count)
+            module.setup(runner, core_count, args.memory)
             runner.execute(core_count, cores.get_cpubind())
             pbar.update(1)
     
