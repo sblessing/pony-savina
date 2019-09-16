@@ -34,13 +34,13 @@ type Action is
   )
 
 class val BehaviorFactory
-  let _nothing: U64
+  let _compute: U64
   let _post: U64
   let _leave: U64
   let _invite: U64
 
-  new create(nothing: U64, post: U64, leave: U64, invite: U64) =>
-    _nothing = nothing
+  new create(compute: U64, post: U64, leave: U64, invite: U64) =>
+    _compute = compute
     _post = post
     _leave = leave
     _invite = invite
@@ -49,20 +49,14 @@ class val BehaviorFactory
     let dice = DiceRoll(Time.millis())
     let actions = List[Action]
 
-    if dice(_post) then
-      actions.push(Post)
-    else 
-      if dice(_leave) then
-        actions.push(Leave)
-      end
-
-      if dice(_invite) then
-        actions.push(Invite)
-      end
-    end
-
-    if actions.size() == 0 then
+    if dice(_compute) then
       actions.push(Compute)
+    else if dice(_post) then
+      actions.push(Post)
+    else if dice(_leave) then
+        actions.push(Leave)
+    else if dice(_invite) then
+        actions.push(Invite)
     end
     
     actions.values()
@@ -335,12 +329,12 @@ class iso ChatApp is AsyncActorBenchmark
       _turns = 20//command.option("turns").u64()
 
       let directories: USize = USize(8192)//command.option("directories").u64().usize()
-      let nothing: U64 = 50 //command.option("nothing").u64()
+      let compute: U64 = 50 //command.option("nothing").u64()
       let post: U64 = 80 //command.option("post").u64()
       let leave: U64 = 25 //command.option("leave").u64()
       let invite: U64 = 25 //command.option("invite").u64()
 
-      _factory = recover BehaviorFactory(nothing, post, leave, invite) end
+      _factory = recover BehaviorFactory(compute, post, leave, invite) end
 
       _directories = recover
         let dirs = Array[Directory](directories)
