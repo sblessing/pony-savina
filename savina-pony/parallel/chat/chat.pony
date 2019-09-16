@@ -51,11 +51,11 @@ class val BehaviorFactory
 
     if dice(_compute) then
       actions.push(Compute)
-    else if dice(_post) then
+    elseif dice(_post) then
       actions.push(Post)
-    else if dice(_leave) then
+    elseif dice(_leave) then
         actions.push(Leave)
-    else if dice(_invite) then
+    elseif dice(_invite) then
         actions.push(Invite)
     end
     
