@@ -251,8 +251,8 @@ class BenchmarkRunner:
           self._run_process(output, exe, cpubind, args = arg[0] + [arg[-1]])  
 
 def write_header_data(sourcepath, title, gnuplot_file, factor):
-  print("set terminal pdf", file=gnuplot_file)
-  print("set output \"%s\"" % (sourcepath.replace(".txt", ".pdf")), file=gnuplot_file)
+  print("set terminal postscript eps enhanced color", file=gnuplot_file)
+  print("set output \"%s\"" % (sourcepath.replace(".txt", ".eps")), file=gnuplot_file)
   print("set xlabel \"Cores\"", file=gnuplot_file)
   print("set ylabel \"Execution Time (Milliseconds, Median)\"", file=gnuplot_file)
 
@@ -375,7 +375,7 @@ def plot(timestamp, results, measured_core_count):
       outpath = "%s/gnuplot_%s.txt" % (basepath, name)
 
       with open(outpath, "w+") as combined_file:
-        write_header_data("%s/%s.pdf" % (basepath, name), name, combined_file, factor)
+        write_header_data("%s/%s.eps" % (basepath, name), name, combined_file, factor)
         
         print("plot " + ", ".join(regression_plots), file=combined_file)
         
@@ -443,7 +443,7 @@ def main():
     for root, dirs, files in os.walk("output/"):
       if root != "output/plots":
         for file in files:
-          if file != '.DS_Store' and not file.endswith(".pdf"):
+          if file != '.DS_Store' and not file.endswith(".eps"):
             path = os.path.join(root, file)
             components  = path.split("/")
             output[components[1]][int(components[3])][components[2]].append(path)

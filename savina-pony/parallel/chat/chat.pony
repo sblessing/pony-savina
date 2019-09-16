@@ -164,8 +164,14 @@ actor Client
     end
 
 actor Directory
-  let _clients: ClientMap = ClientMap
-  let _random: SimpleRand = SimpleRand(42)
+  let _clients: ClientMap
+  let _random: SimpleRand
+  var _turns: U64
+
+  new create(turns: U64) =>
+    _clients = ClientMap
+    _random = SimpleRand(42)
+    _turns = turns
 
   be login(id: U64) =>
     let new_client = Client(id)
@@ -193,9 +199,16 @@ actor Directory
       requestor.offline(id)
     end 
 
-  be next(id: U64, behavior: BehaviorFactory) =>
+  be poke(factory: BehaviorFactory) =>
+    if (_turns = _turns - 1) > 1 then
+      for id in _clients.keys() do
+        _next(id, factory)
+      end
+    end
+
+  fun ref _next(id: U64, factory: BehaviorFactory) =>
     try
-      _clients(id)?.act(behavior)   
+      _clients(id)?.act(factory)   
     end
 
 actor BenchmarkDriver
@@ -214,11 +227,17 @@ actor BenchmarkDriver
       _login(i)
     end
 
-    for j in Range[U64](0, turns) do
+    for id in _directories.keys() do
+      try
+        _directories(id)?.poke(factory)
+      end
+    end
+
+    /*for j in Range[U64](0, turns) do
       for k in Range[U64](0, clients) do
         _poke(k)
       end 
-    end
+    end*/
 
     for l in Range[U64](0, clients) do
       _logout(l)
@@ -237,12 +256,12 @@ actor BenchmarkDriver
       _get_directory_for(id)?.logout(id, this)
     end
 
-  fun box _poke(id: U64) =>
+  /*fun box _poke(id: U64) =>
     try
       match _factory
       | let factory: BehaviorFactory => _get_directory_for(id)?.next(id, factory)
       end
-    end   
+    end */
 
   be confirm() =>
     if (_clients = _clients - 1) == 1 then
@@ -327,7 +346,7 @@ class iso ChatApp is AsyncActorBenchmark
         let dirs = Array[Directory](directories)
 
         for i in Range[USize](0, directories.usize()) do
-          dirs.push(Directory)
+          dirs.push(Directory(_turns))
         end
         
         dirs
