@@ -64,9 +64,9 @@ class val BehaviorFactory
 actor Chat
   let _members: ClientSet = ClientSet
 
-  be post() =>
+  be post(payload: (Array[U8] val | None)) =>
     for member in _members.values() do
-      member.forward(this)
+      member.forward(this, payload)
     end
 
   be acknowledge() =>
@@ -113,7 +113,7 @@ actor Client
   be offline(id: U64) =>
     None //No-op
 
-  be forward(chat: Chat) =>
+  be forward(chat: Chat, payload: (Array[U8] val | None)) =>
     chat.acknowledge()
 
   be act(behavior: BehaviorFactory) =>
@@ -133,9 +133,9 @@ actor Client
 
     for action in behavior() do
       match action
-      | Post => chat.post()
+      | Post => chat.post(None)
       | Leave => chat.leave(this) ; _chats.unset(chat)
-      | Compute => Fibonacci(35)
+      | Compute => Mandelbrot(chat)
       | Invite => 
         let created = Chat
         _invite(created)
