@@ -198,6 +198,8 @@ actor Directory
       for id in _clients.keys() do
         _next(id, factory)
       end
+
+      poke(factory)
     end
 
   fun ref _next(id: U64, factory: BehaviorFactory) =>
