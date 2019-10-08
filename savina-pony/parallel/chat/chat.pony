@@ -75,18 +75,21 @@ actor Chat
   be join(client: Client) =>
     _members.set(client)
   
-  be leave(client: Client) =>
+  be leave(client: Client, did_logout: Bool) =>
     _members.unset(client)
+    client.left(this, did_logout)
 
 actor Client
   let _id: U64
   let _friends: FriendSet
   let _chats: ChatSet
+  let _directory: Directory
 
-  new create(id: U64) =>
+  new create(id: U64, directory: Directory) =>
     _id = id
     _friends = FriendSet
     _chats = ChatSet
+    _directory = directory
 
   fun ref _invite(chat: Chat) =>
     _chats.set(chat)
@@ -95,15 +98,18 @@ actor Client
   be befriend(client: Client) =>
     _friends.set(client)
   
-  be logout(driver: BenchmarkDriver) =>
+  be logout() =>
     for chat in _chats.values() do
-      chat.leave(this)
+      chat.leave(this, true)
     end
 
-    _chats.clear()
+  be left(chat: Chat, did_logout: Bool) =>
+    _chats.unset(chat)
+      
+    if ( _chats.size() == 0 ) and did_logout then
+      _directory.left(_id)
+    end
 
-    driver.confirm()
-  
   be invite(chat: Chat) =>
     _invite(chat)
 
@@ -120,7 +126,7 @@ actor Client
     let index = SimpleRand(42).next().usize() % _chats.size()
     var i: USize = 0
 
-    // Pony has no implicit conversion from Seq toArray.
+    // Pony has no implicit conversion from Seq to Array.
     var chat = Chat
     
     for c in _chats.values() do
@@ -134,8 +140,8 @@ actor Client
     for action in behavior() do
       match action
       | Post => chat.post(None)
-      | Leave => chat.leave(this) ; _chats.unset(chat)
-      | Compute => Mandelbrot(chat)
+      | Leave => chat.leave(this, false)
+      | Compute => Fibonacci(35) //Mandelbrot(chat)
       | Invite => 
         let created = Chat
         _invite(created)
@@ -160,15 +166,18 @@ actor Client
 actor Directory
   let _clients: ClientMap
   let _random: SimpleRand
-  var _turns: U64
+  var _poker: (Poker | None)
 
-  new create(turns: U64) =>
+  new create() =>
     _clients = ClientMap
     _random = SimpleRand(42)
-    _turns = turns
+    _poker = None
+
+  be set_poker(poker: Poker) =>
+    _poker = poker
 
   be login(id: U64) =>
-    let new_client = Client(id)
+    let new_client = Client(id, this)
 
     _clients(id) = new_client
     
@@ -178,11 +187,10 @@ actor Directory
         new_client.befriend(client)
       end
     end
-  
-  be logout(id: U64, driver: BenchmarkDriver) =>
+
+  be logout(id: U64) =>
     try
-      (_, let client) = _clients.remove(id)?
-      client.logout(driver)
+      _clients(id)?.logout()
     end
 
   be status(id: U64, requestor: Client) =>
@@ -191,167 +199,100 @@ actor Directory
       requestor.online(id)
     else
       requestor.offline(id)
-    end 
-
-  be poke(factory: BehaviorFactory) =>
-    if (_turns = _turns - 1) > 1 then
-      for id in _clients.keys() do
-        _next(id, factory)
-      end
-
-      poke(factory)
     end
 
-  fun ref _next(id: U64, factory: BehaviorFactory) =>
+  be left(id: U64) =>
     try
-      _clients(id)?.act(factory)   
+      _clients.remove(id)?
+
+      if _clients.size() == 0 then
+        match _poker
+        | let poker: Poker => poker.confirm()
+        end
+
+        _poker = None
+      end
     end
 
-actor BenchmarkDriver
-  let _bench: AsyncBenchmarkCompletion
-  let _factory: BehaviorFactory
-  let _directories: Array[Directory] val
+  be broadcast(factory: BehaviorFactory) =>
+    for client in _clients.values() do
+      client.act(factory)
+    end
+   
+actor Poker
   var _clients: U64
-
-  new create(bench: AsyncBenchmarkCompletion, factory: BehaviorFactory, directories: Array[Directory] val, turns: U64, clients: U64) =>
-    _bench = bench
-    _factory = factory
-    _directories = directories
-    _clients = clients
-
-    for i in Range[U64](0, clients) do
-      _login(i)
-    end
-
-    for id in _directories.keys() do
-      try
-        _directories(id)?.poke(factory)
-      end
-    end
-
-    /*for j in Range[U64](0, turns) do
-      for k in Range[U64](0, clients) do
-        _poke(k)
-      end 
-    end*/
-
-    for l in Range[U64](0, clients) do
-      _logout(l)
-    end
-
-  fun box _get_directory_for(id: U64): Directory? =>
-    _directories(id.usize() % _directories.size())?
-
-  fun box _login(id: U64) =>
-    try
-      _get_directory_for(id)?.login(id)
-    end
+  var _confirmations: USize
+  var _turns: U64
+  var _directories: Array[Directory] val
+  var _factory: BehaviorFactory
+  var _bench: AsyncBenchmarkCompletion
   
-  fun box _logout(id: U64) =>
-    try
-      _get_directory_for(id)?.logout(id, this)
+  new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
+    _clients = clients
+    _confirmations = directories.size()
+    _turns = turns
+    _directories = directories
+    _factory = factory
+    _bench = bench
+
+    for directory in directories.values() do
+      directory.set_poker(this)
     end
 
-  /*fun box _poke(id: U64) =>
-    try
-      match _factory
-      | let factory: BehaviorFactory => _get_directory_for(id)?.next(id, factory)
+    for client in Range[U64](0, clients) do
+      try
+        let index = client.usize() % directories.size()
+        directories(index)?.login(client)
       end
-    end */
+    end
 
+    while ( _turns = _turns - 1 ) > 1 do
+      for directory in _directories.values() do
+        directory.broadcast(_factory)
+      end
+    end
+    
+    for client in Range[U64](0, _clients) do
+      try
+        let index = client.usize() % _directories.size()
+        _directories(index)?.logout(client)
+      end
+    end
+    
   be confirm() =>
-    if (_clients = _clients - 1) == 1 then
+    if (_confirmations = _confirmations - 1 ) == 1 then
       _bench.complete()
     end
 
 class iso ChatApp is AsyncActorBenchmark
   var _clients: U64
   var _turns: U64
-  var _directories: (Array[Directory] val | None)
-  var _factory: (BehaviorFactory val | None)
+  var _directories: Array[Directory] val
+  var _factory: BehaviorFactory val
 
   new iso create(env: Env) =>
-    _directories = None
-    _factory = None
-    _clients = 0
-    _turns = 0
-    _init(env)
+    _clients = 256
+    _turns = 20
 
-  fun ref _init(env: Env) =>
-    /*try
-      let spec = 
-        recover iso
-          CommandSpec.leaf("lola",
-            """
-            A tuneable actor benchmark.
-            """, 
-            [
-              OptionSpec.u64(
-                "clients",
-                "The number of clients. Defaults to 2048"
-                where short' = 'c', default' = 2048
-              )
-              OptionSpec.u64(
-                "directories",
-                "The number of directory actors. Defaults to 16."
-                where short' = 'd', default' = 16
-              )
-              OptionSpec.u64(
-                "turns",
-                "The number of turns execute. Defaults to 20."
-                where short' = 't', default' = 20
-              )
-              OptionSpec.u64(
-                "nothing",
-                "The probability for a client to do nothing. Defaults to 50%."
-                where short' = 'n', default' = 50
-              )
-              OptionSpec.u64(
-                "post",
-                "The probability for a client to post something. Defaults to 80%."
-                where short' = 'p', default' = 80
-              )
-              OptionSpec.u64(
-                "leave",
-                "The probability for a client to leave a chat. Defaults to 25%."
-                where short' = 'l', default' = 25
-              )
-              OptionSpec.u64(
-                "invite",
-                "The probability for client to create a new chat and invite a subset of its friends. Defaults to 25%."
-                where short' = 'i', default' = 25
-              )
-            ]
-          )?
-        end
+    let directories: USize = USize(16)
+    let compute: U64 = 50
+    let post: U64 = 80
+    let leave: U64 = 25
+    let invite: U64 = 25
 
-      let command = Arguments(consume spec, env) ? */
+    _factory = recover BehaviorFactory(compute, post, leave, invite) end
 
-      _clients = 32768 //command.option("clients").u64()
-      _turns = 20//command.option("turns").u64()
+    _directories = recover
+      let dirs = Array[Directory](directories)
 
-      let directories: USize = USize(8192)//command.option("directories").u64().usize()
-      let compute: U64 = 50 //command.option("nothing").u64()
-      let post: U64 = 80 //command.option("post").u64()
-      let leave: U64 = 25 //command.option("leave").u64()
-      let invite: U64 = 25 //command.option("invite").u64()
-
-      _factory = recover BehaviorFactory(compute, post, leave, invite) end
-
-      _directories = recover
-        let dirs = Array[Directory](directories)
-
-        for i in Range[USize](0, directories.usize()) do
-          dirs.push(Directory(_turns))
-        end
-        
-        dirs
+      for i in Range[USize](0, directories.usize()) do
+        dirs.push(Directory)
       end
-    //end
+        
+      dirs
+    end
 
   fun box apply(c: AsyncBenchmarkCompletion) => 
-    match (_factory, _directories)
-    | (let f: BehaviorFactory, let d: Array[Directory] val) => BenchmarkDriver(c, f, d, _turns, _clients)
-    end    
+    Poker.poke(_clients, _turns, _directories, _factory, c)
 
   fun tag name(): String => "Chat App"
