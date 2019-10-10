@@ -65,15 +65,28 @@ actor Chat
   let _members: ClientSet = ClientSet
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
-    for member in _members.values() do
-      member.forward(this, payload, done)
+    var token = object
+      var _acknowledgements: USize = _members.size()
+
+      be apply() =>
+        if (_acknowledgements = _acknowledgements - 1) == 1 then
+          done()
+        end
     end
 
-  be acknowledge(done: {(): None} val) =>
-    done()
+    for member in _members.values() do
+      member.forward(this, payload, token)
+    else
+      done()
+    end
 
-  be join(client: Client) =>
+  be acknowledge(acknowledgement: {tag (): None} tag) =>
+    acknowledgement()
+
+  be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
+    acknowledgement()
+
   
   be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
     _members.unset(client)
@@ -89,11 +102,7 @@ actor Client
     _id = id
     _friends = FriendSet
     _chats = ChatSet
-    _directory = directory
-
-  fun ref _invite(chat: Chat) =>
-    _chats.set(chat)
-    chat.join(this)
+    _directory = directory  
 
   be befriend(client: Client) =>
     _friends.set(client)
@@ -104,15 +113,15 @@ actor Client
     end
 
   be left(chat: Chat, did_logout: Bool, done: {(): None} val) =>
-    done()
-    _chats.unset(chat)
+    done() ; _chats.unset(chat)
       
     if ( _chats.size() == 0 ) and did_logout then
       _directory.left(_id)
     end
 
-  be invite(chat: Chat) =>
-    _invite(chat)
+  be invite(chat: Chat, token: {tag (): None} tag) =>
+    _chats.set(chat)
+    chat.join(this, token)
 
   be online(id: U64) =>
     None //No-op
@@ -120,8 +129,8 @@ actor Client
   be offline(id: U64) =>
     None //No-op
 
-  be forward(chat: Chat, payload: (Array[U8] val | None), done: {(): None} val) =>
-    chat.acknowledge(done)
+  be forward(chat: Chat, payload: (Array[U8] val | None), token: {tag (): None} tag) =>
+    chat.acknowledge(token)
 
   be act(behavior: BehaviorFactory) =>
     let index = SimpleRand(42).next().usize() % _chats.size()
@@ -146,7 +155,6 @@ actor Client
     | Compute => Fibonacci(35) ; _directory.completed() //Mandelbrot(chat)
     | Invite => 
       let created = Chat
-      _invite(created)
 
       // Again convert the set values to an array, in order
       // to be able to use shuffle from rand
@@ -159,8 +167,26 @@ actor Client
       let s = Rand(42)
       s.shuffle[Client](f)
 
-      for k in Range[USize](0, s.next().usize() % _friends.size()) do
-        try f(k)?.invite(created) end
+      f.unshift(this)
+
+      var invitations: USize = s.next().usize() % _friends.size()
+
+      if invitations == 0 then
+        invitations = 1
+      end
+
+      // prepare the completion handler
+      let token = object
+        var acknowledgements: USize = invitations
+
+         be apply() =>
+           if( acknowledgements = acknowledgements - 1) == 1 then
+             _directory.completed()
+           end
+      end
+
+      for k in Range[USize](0, invitations) do
+        try f(k)?.invite(created, token) end
       end
     else
       _directory.completed()
@@ -220,7 +246,7 @@ actor Directory
     end
 
   be broadcast(factory: BehaviorFactory) =>
-    _completions = _clients.size()
+    _completions = _completions + _clients.size()
 
     for client in _clients.values() do
       client.act(factory)
