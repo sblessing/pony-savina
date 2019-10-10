@@ -45,39 +45,39 @@ class val BehaviorFactory
     _leave = leave
     _invite = invite
 
-  fun box apply(): ListValues[Action, ListNode[Action]] =>
+  fun box apply(): (Action | None) =>
     let dice = DiceRoll(Time.millis())
-    let actions = List[Action]
+    var action: (Action | None) = None
 
     if dice(_compute) then
-      actions.push(Compute)
+      action = Compute
     elseif dice(_post) then
-      actions.push(Post)
+      action = Post
     elseif dice(_leave) then
-        actions.push(Leave)
+      action = Leave
     elseif dice(_invite) then
-        actions.push(Invite)
+      action = Invite
     end
     
-    actions.values()
+    action
     
 actor Chat
   let _members: ClientSet = ClientSet
 
-  be post(payload: (Array[U8] val | None)) =>
+  be post(payload: (Array[U8] val | None), done: {(): None} val) =>
     for member in _members.values() do
-      member.forward(this, payload)
+      member.forward(this, payload, done)
     end
 
-  be acknowledge() =>
-    None //No-op
+  be acknowledge(done: {(): None} val) =>
+    done()
 
   be join(client: Client) =>
     _members.set(client)
   
-  be leave(client: Client, did_logout: Bool) =>
+  be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
     _members.unset(client)
-    client.left(this, did_logout)
+    client.left(this, did_logout, done)
 
 actor Client
   let _id: U64
@@ -100,10 +100,11 @@ actor Client
   
   be logout() =>
     for chat in _chats.values() do
-      chat.leave(this, true)
+      chat.leave(this, true, recover val {(): None => None} end)
     end
 
-  be left(chat: Chat, did_logout: Bool) =>
+  be left(chat: Chat, did_logout: Bool, done: {(): None} val) =>
+    done()
     _chats.unset(chat)
       
     if ( _chats.size() == 0 ) and did_logout then
@@ -119,8 +120,8 @@ actor Client
   be offline(id: U64) =>
     None //No-op
 
-  be forward(chat: Chat, payload: (Array[U8] val | None)) =>
-    chat.acknowledge()
+  be forward(chat: Chat, payload: (Array[U8] val | None), done: {(): None} val) =>
+    chat.acknowledge(done)
 
   be act(behavior: BehaviorFactory) =>
     let index = SimpleRand(42).next().usize() % _chats.size()
@@ -137,40 +138,44 @@ actor Client
       i = i + 1 ; chat = c
     end
 
-    for action in behavior() do
-      match action
-      | Post => chat.post(None)
-      | Leave => chat.leave(this, false)
-      | Compute => Fibonacci(35) //Mandelbrot(chat)
-      | Invite => 
-        let created = Chat
-        _invite(created)
+    let done = recover val {(): None => _directory.completed()} end
 
-        // Again convert the set values to an array, in order
-        // to be able to use shuffle from rand
-        let f = Array[Client](_friends.size())
+    match behavior()
+    | Post => chat.post(None, done)
+    | Leave => chat.leave(this, false, done)
+    | Compute => Fibonacci(35) ; _directory.completed() //Mandelbrot(chat)
+    | Invite => 
+      let created = Chat
+      _invite(created)
 
-        for friend in _friends.values() do
-          f.push(friend)
-        end
+      // Again convert the set values to an array, in order
+      // to be able to use shuffle from rand
+      let f = Array[Client](_friends.size())
 
-        let s = Rand(42)
-        s.shuffle[Client](f)
-
-        for k in Range[USize](0, s.next().usize() % _friends.size()) do
-          try f(k)?.invite(created) end
-        end
+      for friend in _friends.values() do
+        f.push(friend)
       end
+
+      let s = Rand(42)
+      s.shuffle[Client](f)
+
+      for k in Range[USize](0, s.next().usize() % _friends.size()) do
+        try f(k)?.invite(created) end
+      end
+    else
+      _directory.completed()
     end
 
 actor Directory
   let _clients: ClientMap
   let _random: SimpleRand
+  var _completions: USize
   var _poker: (Poker | None)
 
   new create() =>
     _clients = ClientMap
     _random = SimpleRand(42)
+    _completions = 0
     _poker = None
 
   be set_poker(poker: Poker) =>
@@ -207,7 +212,7 @@ actor Directory
 
       if _clients.size() == 0 then
         match _poker
-        | let poker: Poker => poker.confirm()
+        | let poker: Poker => poker.finished()
         end
 
         _poker = None
@@ -215,12 +220,22 @@ actor Directory
     end
 
   be broadcast(factory: BehaviorFactory) =>
+    _completions = _clients.size()
+
     for client in _clients.values() do
       client.act(factory)
+    end
+
+  be completed() =>
+    if (_completions = _completions - 1) == 1 then
+      match _poker
+      | let poker: Poker => poker.finished()
+      end
     end
    
 actor Poker
   var _clients: U64
+  var _logouts: USize
   var _confirmations: USize
   var _turns: U64
   var _directories: Array[Directory] val
@@ -229,7 +244,8 @@ actor Poker
   
   new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
     _clients = clients
-    _confirmations = directories.size()
+    _logouts = directories.size()
+    _confirmations = directories.size() * turns.usize()
     _turns = turns
     _directories = directories
     _factory = factory
@@ -252,15 +268,23 @@ actor Poker
       end
     end
     
-    for client in Range[U64](0, _clients) do
-      try
-        let index = client.usize() % _directories.size()
-        _directories(index)?.logout(client)
-      end
-    end
-    
   be confirm() =>
     if (_confirmations = _confirmations - 1 ) == 1 then
+      /**
+       * The logout/teardown phase may only happen
+       * after we know that all turns have been
+       * carried out completely.
+       */
+      for client in Range[U64](0, _clients) do
+        try
+          let index = client.usize() % _directories.size()
+          _directories(index)?.logout(client)
+        end
+      end
+    end
+
+  be finished() =>
+    if (_logouts = _logouts - 1 ) == 1 then
       _bench.complete()
     end
 

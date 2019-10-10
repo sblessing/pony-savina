@@ -105,7 +105,7 @@ actor Mandelbrot
     spawn_actors()
     
   be report(offset: USize, pixels: Array[U8] val) =>
-    chat.post(pixels)
+    None //chat.post(pixels)
     
   fun ref spawn_actors() =>
     actors = ((c.width + (c.chunks - 1)) / c.chunks)
