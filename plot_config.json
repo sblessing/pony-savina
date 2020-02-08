@@ -70,7 +70,7 @@
 	"Ping Pong": "01",
 	"Sieve of Eratosthenes": "25",
   "Thread Ring": "02",
-  "Quicksort": "21",
+  "ChatApp": "21",
   "Radixsort": "22",
   "Recursive Matrix Multiplication": "20",
   "Trapezoid": "28",
@@ -86,7 +86,7 @@
 		"08": { "name": "Big", "category": "01" },
 		"09": { "name": "Concurrent Dictionary", "category": "02" },
 		"10": { "name": "Concurrent Sorted Linked-List", "category": "02" },
-		"11": { "name": "Producer-Consumer with Bounded Buffer", "category": "02" },
+		"11": { "name": "Bounded Buffer", "category": "02" },
 		"12": { "name": "Dining Philosophers", "category": "02" },
 		"13": { "name": "Sleeping Barber", "category": "02" },
 		"14": { "name": "Cigarette Smokers", "category": "02" },
@@ -96,7 +96,7 @@
 		"18": { "name": "A-Star Search", "category": "03" },
 		"19": { "name": "NQueens first K solutions", "category": "03" },
 		"20": { "name": "Recursive Matrix Multiplication", "category": "03" },
-		"21": { "name": "Quicksort", "category": "03" },
+		"21": { "name": "ChatApp", "category": "03" },
 		"22": { "name": "Radix Sort", "category": "03" },
 		"23": { "name": "Filter Bank", "category": "03" },
 		"24": { "name": "Bitonic Sort", "category": "03" },
@@ -116,7 +116,7 @@
 	"colors": {
 	  "akka": "#FF0000",
 	  "caf": "#0000FF",
-	  "pony": "#00FF00"
+	  "pony": "#000000"
 	},
 	"versions": {
 		"akka": "2.3.2",

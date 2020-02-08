@@ -11,21 +11,24 @@ interface tag BenchmarkRunner
   fun tag benchmarks(bench: Savina, env: Env)
 
 interface tag AsyncBenchmarkCompletion 
-  be complete()
+  be complete(qos: F64 = 0)
 
 class Result
   let _benchmark: String
   let _parseable: Bool
-  let _samples: Array[F64]
+  var _samples: Array[F64]
+  var _qos: F64
 
   new create(benchmark: String, parseable: Bool) =>
     _benchmark = benchmark
     _parseable = parseable
     _samples = Array[F64]
+    _qos = 0
 
-  fun ref record(nanos: U64) =>
+  fun ref record(nanos: U64, qos: F64) =>
     _samples.push(nanos.f64())
-  
+    _qos = qos
+
   fun ref apply(): String =>
     Sort[Array[F64], F64](_samples)
 
@@ -35,116 +38,25 @@ class Result
       end
     end
 
+    let stats = SampleStats(_samples = Array[F64])
+
     if not _parseable then
       "".join(
         [ Format(_benchmark where width = 31)
-          Format(_mean().string() + " ms" where width = 18, align = AlignRight)
-          Format(_median().string() + " ms" where width = 18, align = AlignRight)
-          Format("±" + _error().string() + " %" where width = 18, align = AlignRight)
+          Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
+          Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
+          Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
+          Format(_qos.string() where width = 18, align = AlignRight)
         ].values())
     else
       ",".join([
         _benchmark
-        _mean().string()
-        _median().string()
-        _error().string()
+        stats.mean().string()
+        stats.median().string()
+        stats.err().string()
+        _qos.string()
       ].values())
     end
-  
-  fun ref _sum(): F64 =>
-    var sum: F64 = 0
-
-    try
-      for i in Range(0, _samples.size()) do
-        sum = sum + _samples(i)?
-      end
-    end
-
-    sum
-
-  fun ref _mean(): F64 =>
-    (_sum() / _samples.size().f64())
-
-  fun ref _median(): F64 =>
-    let size = _samples.size() 
-
-    if size == 0 then
-      0
-    else
-      let middle = size / 2
-
-      try
-        if (size % 2) == 1 then
-          _samples(middle)?
-        else
-          (_samples(middle - 1)? + _samples(middle)?) / 2
-        end
-      else
-        0
-      end
-    end
-
-  fun ref _geometric_mean(): F64 =>
-    var result: F64 = 0
-
-    for i in Range[USize](0, _samples.size()) do
-       try result = result + _samples(i)?.log10() end
-    end
-    
-    F64(10).pow(result / _samples.size().f64())
-
-  fun ref _harmonic_mean(): F64 =>
-    var denom: F64 = 0
-
-    for i in Range[USize](0, _samples.size()) do
-      try denom = denom + ( 1 / _samples(i)?) end
-    end
-
-    _samples.size().f64() / denom
-
-  fun ref _stddev(): F64 =>
-    let mean = _mean()
-    var temp: F64 = 0
-
-    for i in Range[USize](0, _samples.size()) do
-      try 
-        let sample = _samples(i)?
-        temp = temp + ((mean - sample) * (mean - sample))
-      end
-    end
-
-    (temp / _samples.size().f64()).sqrt()
-  
-  fun ref _error(): F64 =>
-    F64(100) * ((_confidence_high() - _mean()) / _mean())
-
-  fun ref _variation(): F64 =>
-   _stddev() / _mean()
-
-  fun ref _confidence_low(): F64 =>
-    _mean() - (F64(1.96) * (_stddev() / _samples.size().f64().sqrt()))
-
-  fun ref _confidence_high(): F64 =>
-    _mean() + (F64(1.96) * (_stddev() / _samples.size().f64().sqrt()))
-
-   fun ref _skewness(): F64 =>
-     let mean = _mean()
-     let sd = _stddev()
-     var sum: F64 = 0
-     var diff: F64 = 0
-
-     if _samples.size() > 0 then
-       for i in Range[USize](0, _samples.size()) do
-         try
-           diff = _samples(i)? - mean
-           sum = sum + (diff * diff * diff)
-         end
-       end
-
-       sum / ((_samples.size().f64() - 1) * sd * sd * sd) 
-     else
-       0
-     end
 
 type ResultsMap is MapIs[AsyncActorBenchmark tag, Result]
 
@@ -167,6 +79,7 @@ class OutputManager
           Format("mean" where width = 18, align = AlignRight)
           Format("median" where width = 18, align = AlignRight)
           Format("error" where width = 18, align = AlignRight)
+          Format("QoS" where width = 18, align = AlignRight)
           ANSI.reset()
         ].values()))
     end
@@ -183,10 +96,10 @@ class OutputManager
       _results(benchmark) = Result(benchmark.name(), _parseable)
     end
 
-  fun ref report(nanos: U64) =>
+  fun ref report(nanos: U64, qos: F64) =>
     try
       match _incoming
-      | let n: AsyncActorBenchmark tag => _results(n)?.record(nanos)
+      | let n: AsyncActorBenchmark tag => _results(n)?.record(nanos, qos)
       end
     end
 
@@ -245,10 +158,10 @@ actor Savina
       end
     end
 
-  be complete() =>
+  be complete(qos: F64 = 0) =>
     _end = Time.nanos()
     _running = false
-    _output.report(_end - _start)
+    _output.report(_end - _start, qos)
     _next()
 
   be apply(iterations: U64, benchmark: AsyncActorBenchmark iso) =>

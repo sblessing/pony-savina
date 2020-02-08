@@ -46,16 +46,17 @@ class val BehaviorFactory
     _invite = invite
 
   fun box apply(): (Action | None) =>
-    let dice = DiceRoll(Time.millis())
+    let dice = SimpleRand(Time.millis()) //DiceRoll(Time.millis())
+    let prob = dice.nextInt(100).u64()
     var action: (Action | None) = None
 
-    if dice(_compute) then
+    if prob <= _compute then
       action = Compute
-    elseif dice(_post) then
+    elseif prob <= _post then
       action = Post
-    elseif dice(_leave) then
+    elseif prob <= _leave then
       action = Leave
-    elseif dice(_invite) then
+    elseif prob <= _invite then
       action = Invite
     end
     
@@ -186,6 +187,7 @@ actor Client
       end
 
       for k in Range[USize](0, invitations) do
+        //pick random index k??
         try f(k)?.invite(created, token) end
       end
     else
@@ -265,15 +267,20 @@ actor Poker
   var _confirmations: USize
   var _turns: U64
   var _directories: Array[Directory] val
+  var _runtimes: Array[F64]
   var _factory: BehaviorFactory
   var _bench: AsyncBenchmarkCompletion
   
+  fun ref _compute_qos(): U64 =>
+    0    
+
   new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
     _clients = clients
     _logouts = directories.size()
     _confirmations = directories.size() * turns.usize()
     _turns = turns
     _directories = directories
+    _runtimes = Array[F64](_turns.usize())
     _factory = factory
     _bench = bench
 
@@ -289,12 +296,21 @@ actor Poker
     end
 
     while ( _turns = _turns - 1 ) > 1 do
+      _runtimes.push(Time.millis().f64())
+
       for directory in _directories.values() do
         directory.broadcast(_factory)
       end
     end
     
   be confirm() =>
+    try 
+      let start = _runtimes(_runtimes.size() - 1) ?
+      let finish = Time.millis().f64()
+
+      _runtimes.push(finish - start) 
+    end
+
     if (_confirmations = _confirmations - 1 ) == 1 then
       /**
        * The logout/teardown phase may only happen
@@ -307,11 +323,16 @@ actor Poker
           _directories(index)?.logout(client)
         end
       end
+
+      for i in Range[USize](0, _runtimes.size()) do
+        try @printf[I32]("%zu\n", _runtimes(i)?) end
+      end
     end
 
   be finished() =>
     if (_logouts = _logouts - 1 ) == 1 then
-      _bench.complete()
+       let qos = SampleStats(_runtimes = Array[F64])
+      _bench.complete(qos.stddev())
     end
 
 class iso ChatApp is AsyncActorBenchmark
@@ -321,10 +342,10 @@ class iso ChatApp is AsyncActorBenchmark
   var _factory: BehaviorFactory val
 
   new iso create(env: Env) =>
-    _clients = 256
+    _clients = 32768
     _turns = 20
 
-    let directories: USize = USize(16)
+    let directories: USize = USize(256)
     let compute: U64 = 50
     let post: U64 = 80
     let leave: U64 = 25
