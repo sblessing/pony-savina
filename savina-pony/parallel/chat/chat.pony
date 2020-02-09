@@ -45,18 +45,16 @@ class val BehaviorFactory
     _leave = leave
     _invite = invite
 
-  fun box apply(): (Action | None) =>
-    let dice = SimpleRand(Time.millis()) //DiceRoll(Time.millis())
-    let prob = dice.nextInt(100).u64()
+  fun box apply(dice: DiceRoll): (Action | None) =>
     var action: (Action | None) = None
 
-    if prob <= _compute then
+    if dice(_compute) then
       action = Compute
-    elseif prob <= _post then
+    elseif dice(_post) then
       action = Post
-    elseif prob <= _leave then
+    elseif dice(_leave) then
       action = Leave
-    elseif prob <= _invite then
+    elseif dice(_invite) then
       action = Invite
     end
     
@@ -98,12 +96,16 @@ actor Client
   let _friends: FriendSet
   let _chats: ChatSet
   let _directory: Directory
+  let _dice: DiceRoll
+  let _rand: SimpleRand
 
-  new create(id: U64, directory: Directory) =>
+  new create(id: U64, directory: Directory, seed: U64) =>
     _id = id
     _friends = FriendSet
     _chats = ChatSet
     _directory = directory  
+    _dice = DiceRoll(seed)
+    _rand = SimpleRand(seed)
 
   be befriend(client: Client) =>
     _friends.set(client)
@@ -134,7 +136,7 @@ actor Client
     chat.acknowledge(token)
 
   be act(behavior: BehaviorFactory) =>
-    let index = SimpleRand(42).next().usize() % _chats.size()
+    let index = _rand.nextInt(_chats.size().u32()).usize()
     var i: USize = 0
 
     // Pony has no implicit conversion from Seq to Array.
@@ -150,7 +152,7 @@ actor Client
 
     let done = recover val {(): None => _directory.completed()} end
 
-    match behavior()
+    match behavior(_dice)
     | Post => chat.post(None, done)
     | Leave => chat.leave(this, false, done)
     | Compute => Fibonacci(35) ; _directory.completed() //Mandelbrot(chat)
@@ -165,7 +167,7 @@ actor Client
         f.push(friend)
       end
 
-      let s = Rand(42)
+      let s = Rand(_rand.next())
       s.shuffle[Client](f)
 
       f.unshift(this)
@@ -200,9 +202,9 @@ actor Directory
   var _completions: USize
   var _poker: (Poker | None)
 
-  new create() =>
+  new create(seed: U64) =>
     _clients = ClientMap
-    _random = SimpleRand(42)
+    _random = SimpleRand(seed)
     _completions = 0
     _poker = None
 
@@ -210,7 +212,7 @@ actor Directory
     _poker = poker
 
   be login(id: U64) =>
-    let new_client = Client(id, this)
+    let new_client = Client(id, this, _random.next())
 
     _clients(id) = new_client
     
@@ -271,9 +273,6 @@ actor Poker
   var _factory: BehaviorFactory
   var _bench: AsyncBenchmarkCompletion
   
-  fun ref _compute_qos(): U64 =>
-    0    
-
   new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
     _clients = clients
     _logouts = directories.size()
@@ -323,10 +322,6 @@ actor Poker
           _directories(index)?.logout(client)
         end
       end
-
-      for i in Range[USize](0, _runtimes.size()) do
-        try @printf[I32]("%zu\n", _runtimes(i)?) end
-      end
     end
 
   be finished() =>
@@ -350,6 +345,7 @@ class iso ChatApp is AsyncActorBenchmark
     let post: U64 = 80
     let leave: U64 = 25
     let invite: U64 = 25
+    let rand = SimpleRand(42)
 
     _factory = recover BehaviorFactory(compute, post, leave, invite) end
 
@@ -357,7 +353,7 @@ class iso ChatApp is AsyncActorBenchmark
       let dirs = Array[Directory](directories)
 
       for i in Range[USize](0, directories.usize()) do
-        dirs.push(Directory)
+        dirs.push(Directory(rand.next()))
       end
         
       dirs
