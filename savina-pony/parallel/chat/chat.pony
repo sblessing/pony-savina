@@ -259,7 +259,7 @@ actor Directory
   be completed() =>
     if (_completions = _completions - 1) == 1 then
       match _poker
-      | let poker: Poker => poker.finished()
+      | let poker: Poker => poker.confirm()
       end
     end
    
@@ -304,10 +304,11 @@ actor Poker
     
   be confirm() =>
     try 
-      let start = _runtimes(_runtimes.size() - 1) ?
+      let index = _runtimes.size() - _confirmations
+      let start = _runtimes(index) ?
       let finish = Time.millis().f64()
 
-      _runtimes.push(finish - start) 
+      _runtimes(index)? = finish - start
     end
 
     if (_confirmations = _confirmations - 1 ) == 1 then
