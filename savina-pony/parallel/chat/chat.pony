@@ -113,13 +113,17 @@ actor Client
   be logout() =>
     for chat in _chats.values() do
       chat.leave(this, true, recover val {(): None => None} end)
+    else 
+      _directory.left(_id)
     end
 
   be left(chat: Chat, did_logout: Bool, done: {(): None} val) =>
-    done() ; _chats.unset(chat)
+    _chats.unset(chat)
       
     if ( _chats.size() == 0 ) and did_logout then
       _directory.left(_id)
+    else
+      done()
     end
 
   be invite(chat: Chat, token: {tag (): None} tag) =>
@@ -262,6 +266,11 @@ actor Directory
       | let poker: Poker => poker.confirm()
       end
     end
+
+  be disconnect() =>
+    for c in _clients.values() do
+      c.logout()
+    end
    
 actor Poker
   var _clients: U64
@@ -276,12 +285,14 @@ actor Poker
   new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
     _clients = clients
     _logouts = directories.size()
-    _confirmations = directories.size() * turns.usize()
+    _confirmations = directories.size()
     _turns = turns
     _directories = directories
-    _runtimes = Array[F64](_turns.usize())
+    _runtimes = Array[F64].init(F64(0), _turns.usize())
     _factory = factory
     _bench = bench
+
+    var index: USize = 0
 
     for directory in directories.values() do
       directory.set_poker(this)
@@ -289,27 +300,32 @@ actor Poker
 
     for client in Range[U64](0, clients) do
       try
-        let index = client.usize() % directories.size()
+        index = client.usize() % directories.size()
         directories(index)?.login(client)
       end
     end
 
+    index = 0
+
     while ( _turns = _turns - 1 ) > 1 do
-      _runtimes.push(Time.millis().f64())
+      try _runtimes(index) ? = Time.millis().f64() end
 
       for directory in _directories.values() do
         directory.broadcast(_factory)
       end
+
+      index = index + 1
     end
     
   be confirm() =>
-    try 
-      let index = _runtimes.size() - _confirmations
-      let start = _runtimes(index) ?
-      let finish = Time.millis().f64()
+    // this is broken
+    //try 
+    //  let index = _runtimes.size() - ( _confirmations / _turns.usize() )
+    //  let start = _runtimes(index) ?
+    //  let finish = Time.millis().f64()
 
-      _runtimes(index)? = finish - start
-    end
+    //  _runtimes(index) ? = finish - start
+    //end
 
     if (_confirmations = _confirmations - 1 ) == 1 then
       /**
@@ -317,11 +333,8 @@ actor Poker
        * after we know that all turns have been
        * carried out completely.
        */
-      for client in Range[U64](0, _clients) do
-        try
-          let index = client.usize() % _directories.size()
-          _directories(index)?.logout(client)
-        end
+      for d in _directories.values() do
+        d.disconnect()
       end
     end
 
