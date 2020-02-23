@@ -17,7 +17,7 @@ class iso Filterbank is AsyncActorBenchmark
     _width = columns.usize()
     _channels = U64(2).max(U64(channels).min(33))
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     var h = recover Array[Array[U64] val] end
     var f = recover Array[Array[U64] val] end
 

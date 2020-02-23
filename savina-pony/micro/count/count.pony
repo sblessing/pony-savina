@@ -6,7 +6,7 @@ class iso Count is AsyncActorBenchmark
   new iso create(messages: U64) =>
     _messages = messages
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Producer.increment(c, Counter, _messages)
   
   fun tag name(): String => "Count"

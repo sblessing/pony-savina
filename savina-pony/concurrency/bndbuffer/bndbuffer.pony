@@ -18,7 +18,7 @@ class iso BndBuffer is AsyncActorBenchmark
     _producercosts = producercosts
     _consumercosts = consumercosts
 
-  fun box apply(c: AsyncBenchmarkCompletion) => 
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => 
     Manager(
       c,
       _buffersize, 

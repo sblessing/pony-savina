@@ -10,7 +10,7 @@ class iso Big is AsyncActorBenchmark
     _pings = pings
     _actors = actors
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     BigMaster(c, _pings, _actors)
   
   fun tag name(): String => "Big"

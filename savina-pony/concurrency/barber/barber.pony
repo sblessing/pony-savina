@@ -26,7 +26,7 @@ class iso SleepingBarber is AsyncActorBenchmark
     _production = production
     _cut = cut
 
-  fun box apply(c: AsyncBenchmarkCompletion) => 
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => 
     CustomerFactory.serve(
       c,
       _haircuts,

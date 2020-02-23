@@ -13,7 +13,7 @@ class iso Quicksort is AsyncActorBenchmark
     _max = max
     _threshold = threshold
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     let data = recover Array[U64] end
     let random = SimpleRand(_seed)
 

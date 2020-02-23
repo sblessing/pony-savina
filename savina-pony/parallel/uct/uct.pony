@@ -61,7 +61,7 @@ class iso Uct is AsyncActorBenchmark
     _binomial = binomial
     _urgent = urgent
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Root.generate(
       c, 
       _nodes,

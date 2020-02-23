@@ -13,7 +13,7 @@ class iso Concsll is AsyncActorBenchmark
     _size = size
     _write = write
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Master(
       c,
       _workers,

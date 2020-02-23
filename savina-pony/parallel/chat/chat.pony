@@ -139,7 +139,7 @@ actor Client
   be forward(chat: Chat, payload: (Array[U8] val | None), token: {tag (): None} tag) =>
     chat.acknowledge(token)
 
-  be act(behavior: BehaviorFactory) =>
+  be act(behavior: BehaviorFactory, accumulator: Accumulator) =>
     let index = _rand.nextInt(_chats.size().u32()).usize()
     var i: USize = 0
 
@@ -154,12 +154,12 @@ actor Client
       i = i + 1 ; chat = c
     end
 
-    let done = recover val {(): None => _directory.completed()} end
+    let done = recover val {(): None => _directory.completed(accumulator)} end
 
     match behavior(_dice)
     | Post => chat.post(None, done)
     | Leave => chat.leave(this, false, done)
-    | Compute => Fibonacci(35) ; _directory.completed() //Mandelbrot(chat)
+    | Compute => Fibonacci(35) ; _directory.completed(accumulator) //Mandelbrot(chat)
     | Invite => 
       let created = Chat
 
@@ -188,7 +188,7 @@ actor Client
 
          be apply() =>
            if( acknowledgements = acknowledgements - 1) == 1 then
-             _directory.completed()
+             _directory.completed(accumulator)
            end
       end
 
@@ -197,22 +197,26 @@ actor Client
         try f(k)?.invite(created, token) end
       end
     else
-      _directory.completed()
+      _directory.completed(accumulator)
     end
 
 actor Directory
   let _clients: ClientMap
   let _random: SimpleRand
+  var _start_size: USize
   var _completions: USize
   var _poker: (Poker | None)
 
   new create(seed: U64) =>
     _clients = ClientMap
     _random = SimpleRand(seed)
+    _start_size = 0
     _completions = 0
     _poker = None
 
-  be set_poker(poker: Poker) =>
+  be prepare(poker: Poker, turns: U64) =>
+    _start_size = _clients.size()
+    _completions = _start_size * turns.usize()
     _poker = poker
 
   be login(id: U64) =>
@@ -248,20 +252,18 @@ actor Directory
         match _poker
         | let poker: Poker => poker.finished()
         end
-
-        _poker = None
       end
     end
 
-  be broadcast(factory: BehaviorFactory) =>
-    _completions = _completions + _clients.size()
-
+  be broadcast(factory: BehaviorFactory, accumulator: Accumulator) =>
     for client in _clients.values() do
-      client.act(factory)
+      client.act(factory, accumulator)
     end
 
-  be completed() =>
-    if (_completions = _completions - 1) == 1 then
+  be completed(accumulator: Accumulator) =>
+    accumulator.stop()
+  
+    if ( _completions = _completions - 1 ) == 1 then
       match _poker
       | let poker: Poker => poker.confirm()
       end
@@ -271,62 +273,97 @@ actor Directory
     for c in _clients.values() do
       c.logout()
     end
-   
+
+actor Accumulator
+  var _start: F64
+  var _end: F64
+  var _duration: F64
+  var _expected: USize
+  var _did_stop: Bool
+
+  new create(expected: USize) =>
+    _start = Time.millis().f64()
+    _end = 0
+    _duration = 0
+    _expected = expected
+    _did_stop = false
+
+  be stop() =>
+    if (_expected = _expected - 1) == 1 then
+      _end = Time.millis().f64()
+      _duration = _end - _start
+      _did_stop = true
+    end
+
+   be print(poker: Poker, i: USize, j: USize) =>
+     poker.collect(i, j, _duration)
+
 actor Poker
   var _clients: U64
   var _logouts: USize
   var _confirmations: USize
   var _turns: U64
   var _directories: Array[Directory] val
-  var _runtimes: Array[F64]
+  var _runtimes: Array[Array[Accumulator]]
+  var _accumulations: USize
+  var _finals: Array[Array[String]]
   var _factory: BehaviorFactory
-  var _bench: AsyncBenchmarkCompletion
+  var _bench: (AsyncBenchmarkCompletion | None)
+  var _last: Bool
   
-  new poke(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, bench: AsyncBenchmarkCompletion) =>
+  new create(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory) =>
     _clients = clients
-    _logouts = directories.size()
-    _confirmations = directories.size()
+    _logouts = 0
+    _confirmations = 0
     _turns = turns
     _directories = directories
-    _runtimes = Array[F64].init(F64(0), _turns.usize())
+    _runtimes = Array[Array[Accumulator]]
+    _accumulations = 0
+    _finals = Array[Array[String]]
     _factory = factory
+    _bench = None
+    _last = false
+
+  be apply(bench: AsyncBenchmarkCompletion, last: Bool) =>
+    _confirmations = _directories.size()
+    _logouts = _confirmations
     _bench = bench
+    _last = last
 
+    var turns: U64 = _turns
     var index: USize = 0
+    var values: Array[String] = Array[String]
 
-    for directory in directories.values() do
-      directory.set_poker(this)
-    end
+    _finals.push(values)
 
-    for client in Range[U64](0, clients) do
+    for client in Range[U64](0, _clients) do
       try
-        index = client.usize() % directories.size()
-        directories(index)?.login(client)
+        index = client.usize() % _directories.size()
+        _directories(index)?.login(client)
       end
     end
 
-    index = 0
+    for directory in _directories.values() do
+      directory.prepare(this, _turns)
+    end
 
-    while ( _turns = _turns - 1 ) > 1 do
-      try _runtimes(index) ? = Time.millis().f64() end
+    let accumulators = Array[Accumulator]
+
+    while ( turns = turns - 1 ) >= 1 do
+      values.push("") //for later replacement by index
+
+      let accumulator = Accumulator(_clients.usize())
 
       for directory in _directories.values() do
-        directory.broadcast(_factory)
+        directory.broadcast(_factory, accumulator)
       end
 
-      index = index + 1
+      accumulators.push(accumulator)
     end
+
+    _runtimes.push(accumulators)
     
   be confirm() =>
-    // this is broken
-    //try 
-    //  let index = _runtimes.size() - ( _confirmations / _turns.usize() )
-    //  let start = _runtimes(index) ?
-    //  let finish = Time.millis().f64()
-
-    //  _runtimes(index) ? = finish - start
-    //end
-
     if (_confirmations = _confirmations - 1 ) == 1 then
       /**
        * The logout/teardown phase may only happen
@@ -340,8 +377,38 @@ actor Poker
 
   be finished() =>
     if (_logouts = _logouts - 1 ) == 1 then
-       let qos = SampleStats(_runtimes = Array[F64])
-      _bench.complete(qos.stddev())
+      match _bench
+      | let bench: AsyncBenchmarkCompletion => bench.complete()
+      end
+      
+      if _last then
+        var iteration: USize = 0
+        var turn: USize = 0
+
+        for accumulators in _runtimes.values() do
+          for accumulator in accumulators.values() do
+            accumulator.print(this, iteration, turn)
+            turn = turn + 1
+          end
+
+          _accumulations = _accumulations + turn
+          turn = 0
+
+          iteration = iteration + 1
+        end
+      end      
+    end
+
+  be collect(i: USize, j: USize, duration: F64) =>
+    try
+      _finals(i)?(j)? = duration.string()
+    end
+
+    if ( _accumulations = _accumulations - 1 ) == 1 then
+      for iteration in _finals.values() do 
+        @printf[I32](" ".join(iteration.values()).cstring())
+        @printf[I32]("\n".cstring())
+      end
     end
 
 class iso ChatApp is AsyncActorBenchmark
@@ -349,6 +416,7 @@ class iso ChatApp is AsyncActorBenchmark
   var _turns: U64
   var _directories: Array[Directory] val
   var _factory: BehaviorFactory val
+  var _poker: Poker
 
   new iso create(env: Env) =>
     _clients = 32768
@@ -373,7 +441,8 @@ class iso ChatApp is AsyncActorBenchmark
       dirs
     end
 
-  fun box apply(c: AsyncBenchmarkCompletion) => 
-    Poker.poke(_clients, _turns, _directories, _factory, c)
+    _poker = Poker(_clients, _turns, _directories, _factory)
+
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => _poker(c, last)
 
   fun tag name(): String => "Chat App"

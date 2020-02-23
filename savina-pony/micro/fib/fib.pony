@@ -6,7 +6,7 @@ class iso Fib is AsyncActorBenchmark
   new iso create(index: U64) =>
     _index = index
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Fibonacci.root(c, _index.i64()) 
   
   fun tag name(): String => "Fib"

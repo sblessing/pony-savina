@@ -11,7 +11,7 @@ class iso Recmatmul is AsyncActorBenchmark
     _length = length
     _threshold = threshold
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>    
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>    
     Master(c, _workers, _length, _threshold)
   
   fun tag name(): String => "Recursive Matrix Multiplication"

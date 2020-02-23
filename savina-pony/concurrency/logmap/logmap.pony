@@ -13,7 +13,7 @@ class iso Logmap is AsyncActorBenchmark
     _rate = rate
     _increment = increment
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     LogmapMaster(
       c,
       _terms,

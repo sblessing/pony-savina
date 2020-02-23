@@ -4,31 +4,27 @@ use "format"
 use "term"
 
 trait AsyncActorBenchmark
-  fun box apply(c: AsyncBenchmarkCompletion)
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool)
   fun tag name(): String
 
 interface tag BenchmarkRunner
   fun tag benchmarks(bench: Savina, env: Env)
 
 interface tag AsyncBenchmarkCompletion 
-  be complete(qos: F64 = 0)
+  be complete()
 
 class Result
   let _benchmark: String
   let _parseable: Bool
   var _samples: Array[F64]
-  var _qos: F64
 
   new create(benchmark: String, parseable: Bool) =>
     _benchmark = benchmark
     _parseable = parseable
     _samples = Array[F64]
-    _qos = 0
 
-  fun ref record(nanos: U64, qos: F64) =>
+  fun ref record(nanos: U64) =>
     _samples.push(nanos.f64())
-    _qos = qos
-
   fun ref apply(): String =>
     Sort[Array[F64], F64](_samples)
 
@@ -46,7 +42,6 @@ class Result
           Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
           Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
           Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
-          Format(_qos.string() where width = 18, align = AlignRight)
         ].values())
     else
       ",".join([
@@ -54,7 +49,6 @@ class Result
         stats.mean().string()
         stats.median().string()
         stats.err().string()
-        _qos.string()
       ].values())
     end
 
@@ -79,7 +73,6 @@ class OutputManager
           Format("mean" where width = 18, align = AlignRight)
           Format("median" where width = 18, align = AlignRight)
           Format("error" where width = 18, align = AlignRight)
-          Format("QoS" where width = 18, align = AlignRight)
           ANSI.reset()
         ].values()))
     end
@@ -96,10 +89,10 @@ class OutputManager
       _results(benchmark) = Result(benchmark.name(), _parseable)
     end
 
-  fun ref report(nanos: U64, qos: F64) =>
+  fun ref report(nanos: U64) =>
     try
       match _incoming
-      | let n: AsyncActorBenchmark tag => _results(n)?.record(nanos, qos)
+      | let n: AsyncActorBenchmark tag => _results(n)?.record(nanos)
       end
     end
 
@@ -145,7 +138,7 @@ actor Savina
           recover 
             (var i: U64, let run: AsyncActorBenchmark iso) = _benchmarks.shift()?
              
-            _output.prepare(run) ; run(this) 
+            _output.prepare(run) ; run(this, i == 1) 
 
             if (i = i - 1) > 1 then
               _benchmarks.unshift((i, consume run))
@@ -158,10 +151,10 @@ actor Savina
       end
     end
 
-  be complete(qos: F64 = 0) =>
+  be complete() =>
     _end = Time.nanos()
     _running = false
-    _output.report(_end - _start, qos)
+    _output.report(_end - _start)
     _next()
 
   be apply(iterations: U64, benchmark: AsyncActorBenchmark iso) =>

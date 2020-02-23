@@ -9,7 +9,7 @@ class iso Cigsmok is AsyncActorBenchmark
     _rounds = rounds
     _smokers = smokers
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Arbiter(c, _rounds, _smokers)
 
   fun tag name(): String => "Cigarette Smokers"

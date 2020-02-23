@@ -11,7 +11,7 @@ class iso Concdict is AsyncActorBenchmark
     _messages = messages
     _percentage = percentage
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Master(
       c,
       _workers,

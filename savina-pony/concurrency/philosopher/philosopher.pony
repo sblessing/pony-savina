@@ -11,7 +11,7 @@ class iso DiningPhilosophers is AsyncActorBenchmark
     _rounds = rounds
     _channels = channels
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     let arbitator = Arbitrator(c, _philosophers)
     let actors = Array[Philosopher](_philosophers.usize())
 

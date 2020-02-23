@@ -9,7 +9,7 @@ class iso ThreadRing is AsyncActorBenchmark
     _actors = actors
     _pass = pass
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     let first = RingActor(c)
     var next = first
 

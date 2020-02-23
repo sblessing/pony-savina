@@ -15,7 +15,7 @@ class iso Trapezoid is AsyncActorBenchmark
     _right = right
     _precision = ( right - left ).f64() / _pieces.f64()
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>    
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>    
     Master(
       c,
       _workers,

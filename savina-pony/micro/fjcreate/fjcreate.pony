@@ -9,7 +9,7 @@ class iso Fjcreate is AsyncActorBenchmark
   new iso create(workers: U64) =>
     _workers = workers
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     ForkJoinMaster(c, _workers)
     
   fun tag name(): String => "Fork-Join Create"

@@ -13,7 +13,7 @@ class iso Fjthrput is AsyncActorBenchmark
     _channels = channels
     _priorities = priorities
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     FjthrMaster(c, _messages, _actors, _channels, _priorities)
   
   fun tag name(): String => "Fork-Join Throughput"

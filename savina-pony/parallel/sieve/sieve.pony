@@ -9,7 +9,7 @@ class iso Sieve is AsyncActorBenchmark
     _size = size
     _buffersize = buffersize
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     let filter = PrimeFilter(c where size = _buffersize)
     let producer = NumberProducer(_size, filter)
   

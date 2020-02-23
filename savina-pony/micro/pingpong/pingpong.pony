@@ -6,7 +6,7 @@ class iso PingPong is AsyncActorBenchmark
   new iso create(pings: U64) =>
     _pings = pings
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Ping(c, _pings, Pong)
 
   fun tag name(): String => "Ping Pong"

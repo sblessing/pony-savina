@@ -13,7 +13,7 @@ class iso Banking is AsyncActorBenchmark
     _transactions = transactions
     _initial = F64.max_value() / ( _accounts * _transactions ).f64()
 
-  fun box apply(c: AsyncBenchmarkCompletion) => 
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => 
     Teller(c, _initial, _accounts, _transactions)
 
   fun tag name(): String => "Banking"

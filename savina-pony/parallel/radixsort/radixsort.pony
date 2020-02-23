@@ -13,7 +13,7 @@ class iso Radixsort is AsyncActorBenchmark
     _max = max
     _seed = seed
 
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     var radix = _max / 2
     var next: Neighbor = Validation(c, _dataset)
 

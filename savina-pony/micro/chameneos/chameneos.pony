@@ -48,7 +48,7 @@ class iso Chameneos is AsyncActorBenchmark
     _meetings = meetings
     _chameneos = chameneos
   
-  fun box apply(c: AsyncBenchmarkCompletion) =>
+  fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
     Mall(c, _meetings, _chameneos)
   
   fun tag name(): String => "Chameneos"
