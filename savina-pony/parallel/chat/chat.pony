@@ -64,9 +64,11 @@ actor Chat
   let _members: ClientSet
   var _buffer: Array[(Array[U8] val | None)]
 
-  new create() =>
+  new create(initiator: Client) =>
     _members = ClientSet
     _buffer =  Array[(Array[U8] val | None)]
+
+    _members.set(initiator)
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
     _buffer.push(payload)
@@ -92,19 +94,27 @@ actor Chat
   be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
    
-    let acknowledgements = object
-      var _completions: USize = _members.size() * _buffer.size()
-      let _acknowledgement: {tag(): None} tag = acknowledgement
-
+    let replay = object
+      var _completions: USize = (_members.size() - 1) * _buffer.size()
+      
       be apply() =>
         if (_completions = _completions - 1) == 1 then
-          _acknowledgement()
+          acknowledgement()
         end
     end
 
+    var did_forward: Bool = false
+
     for message in _buffer.values() do
-      client.forward(this, message, acknowledgements)
-    else
+      for client' in _members.values() do
+        if client isnt client' then
+          client'.forward(this, message, replay)
+          did_forward = true
+        end
+      end
+    end
+
+    if not did_forward then
       acknowledgement()
     end
   
@@ -158,14 +168,14 @@ actor Client
     None //No-op
 
   be forward(chat: Chat, payload: (Array[U8] val | None), token: {tag (): None} tag) =>
-    token() //chat.acknowledge(token)
+    token()
 
   be act(behavior: BehaviorFactory, accumulator: Accumulator) =>
     let index = _rand.nextInt(_chats.size().u32()).usize()
     var i: USize = 0
 
     // Pony has no implicit conversion from Seq to Array.
-    var chat = Chat
+    var chat = Chat(this)
     
     for c in _chats.values() do
       if i == index then
@@ -182,7 +192,7 @@ actor Client
     | Leave => chat.leave(this, false, done)
     | Compute => Fibonacci(35) ; _directory.completed(accumulator) //Mandelbrot(chat)
     | Invite => 
-      let created = Chat
+      let created = Chat(this)
 
       // Again convert the set values to an array, in order
       // to be able to use shuffle from rand
