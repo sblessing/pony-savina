@@ -61,9 +61,16 @@ class val BehaviorFactory
     action
     
 actor Chat
-  let _members: ClientSet = ClientSet
+  let _members: ClientSet
+  var _buffer: Array[(Array[U8] val | None)]
+
+  new create() =>
+    _members = ClientSet
+    _buffer =  Array[(Array[U8] val | None)]
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
+    _buffer.push(payload)
+
     var token = object
       var _acknowledgements: USize = _members.size()
 
@@ -86,6 +93,21 @@ actor Chat
     _members.set(client)
     acknowledgement()
 
+    let acknowledgements = object
+      var _completions: USize = _members.size() * _buffer.size()
+      let _acknowledgement: {tag(): None} tag = acknowledgement
+
+      be apply() =>
+        if (_completions = _completions - 1) == 1 then
+          _acknowledgement()
+        end
+    end
+
+    for message in _buffer.values() do
+      client.forward(this, message, acknowledgements)
+    else
+      acknowledgement()
+    end
   
   be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
     _members.unset(client)
@@ -137,7 +159,7 @@ actor Client
     None //No-op
 
   be forward(chat: Chat, payload: (Array[U8] val | None), token: {tag (): None} tag) =>
-    chat.acknowledge(token)
+    token() //chat.acknowledge(token)
 
   be act(behavior: BehaviorFactory, accumulator: Accumulator) =>
     let index = _rand.nextInt(_chats.size().u32()).usize()
