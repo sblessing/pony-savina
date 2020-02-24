@@ -91,8 +91,7 @@ actor Chat
 
   be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
-    acknowledgement()
-
+   
     let acknowledgements = object
       var _completions: USize = _members.size() * _buffer.size()
       let _acknowledgement: {tag(): None} tag = acknowledgement
