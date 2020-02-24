@@ -365,11 +365,6 @@ actor Poker
     
   be confirm() =>
     if (_confirmations = _confirmations - 1 ) == 1 then
-      /**
-       * The logout/teardown phase may only happen
-       * after we know that all turns have been
-       * carried out completely.
-       */
       for d in _directories.values() do
         d.disconnect()
       end
