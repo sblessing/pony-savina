@@ -95,7 +95,7 @@ actor Chat
     _members.set(client)
    
     let replay = object
-      var _completions: USize = (_members.size() - 1) * _buffer.size()
+      var _completions: USize = _buffer.size()
       
       be apply() =>
         if (_completions = _completions - 1) == 1 then
@@ -106,12 +106,8 @@ actor Chat
     var did_forward: Bool = false
 
     for message in _buffer.values() do
-      for client' in _members.values() do
-        if client isnt client' then
-          client'.forward(this, message, replay)
-          did_forward = true
-        end
-      end
+      client.forward(this, message, replay)
+      did_forward = true
     end
 
     if not did_forward then
