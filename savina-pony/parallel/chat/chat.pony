@@ -63,7 +63,9 @@ actor Chat
     _members.set(initiator)
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
-    ifdef "_BENCH_BUFFERED_CHATS" then
+    ifdef "_BENCH_NO_BUFFERED_CHATS" then
+      None
+    else
       _buffer.push(payload)
     end
 
@@ -88,7 +90,9 @@ actor Chat
   be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
    
-    ifdef "_BENCH_BUFFERED_CHATS" then
+    ifdef "_BENCH_NO_BUFFERED_CHATS" then
+       acknowledgement()
+    else
       let replay = object
         var _completions: USize = _buffer.size()
         
@@ -107,9 +111,7 @@ actor Chat
 
       if not did_forward then
         acknowledgement()
-      end
-    else
-      acknowledgement()
+      end  
     end
   
   be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
@@ -429,20 +431,24 @@ actor Poker
 
     if ( _accumulations = _accumulations - 1 ) == 1 then
       let stats = SampleStats(_turn_series = Array[F64])
-      var turns = Array[Array[F64]].init(Array[F64].init(0, _turns.usize()), _finals.size())
+      var turns = Array[Array[F64]]
       var qos = Array[F64]
-      var index = USize(0)
 
-      while (_turns = _turns - 1) >= 1 do
-        for iter in _finals.values() do
-          try turns(index)?.push(iter(index)?) end
+      for k in Range[USize](0, _turns.usize()) do
+        try 
+          turns(k)? 
+        else 
+          turns.push(Array[F64]) 
         end
 
-        index = index + 1
+        for iter in _finals.values() do 
+          try turns(k)?.push(iter(k)?) end
+        end
       end
-
-      for k in Range[USize](0, turns.size()) do
-        try qos.push(SampleStats(turns.pop()?).stddev()) end
+      
+      for l in Range[USize](0, turns.size()) do
+        try @printf[I32]("%d %d\n".cstring(), turns.size(), turns(l)?.size()) end
+        //try qos.push(SampleStats(turns.pop()?).stddev()) end
       end
 
       _env.out.print(
