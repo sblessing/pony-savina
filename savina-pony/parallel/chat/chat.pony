@@ -10,16 +10,6 @@ type FriendSet is SetIs[Client]
 type ChatSet is SetIs[Chat]
 type ClientSet is SetIs[Client]
 
-primitive Arguments
-  fun apply(spec: CommandSpec iso, env: Env): Command val ? =>
-    recover
-      match CommandParser(consume spec).parse(env.args, env.vars)
-      | let command: Command box => command
-      | let help: CommandHelp => help.print_help(env.out) ; env.exitcode(0) ; error
-      | let syntax: SyntaxError => env.out.print(syntax.string()) ; env.exitcode(1) ; error
-      end
-    end
-
 primitive Post
 primitive Leave
 primitive Invite
@@ -63,7 +53,7 @@ class val BehaviorFactory
 actor Chat
   let _members: ClientSet
   var _buffer: Array[(Array[U8] val | None)]
-
+  
   new create(initiator: Client) =>
     _members = ClientSet
     _buffer =  Array[(Array[U8] val | None)]
@@ -71,7 +61,9 @@ actor Chat
     _members.set(initiator)
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
-    _buffer.push(payload)
+    ifdef "_BENCH_BUFFERED_CHATS" then
+      _buffer.push(payload)
+    end
 
     var token = object
       var _acknowledgements: USize = _members.size()
@@ -94,23 +86,27 @@ actor Chat
   be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
    
-    let replay = object
-      var _completions: USize = _buffer.size()
-      
-      be apply() =>
-        if (_completions = _completions - 1) == 1 then
-          acknowledgement()
-        end
-    end
+    ifdef "_BENCH_BUFFERED_CHATS" then
+      let replay = object
+        var _completions: USize = _buffer.size()
+        
+        be apply() =>
+          if (_completions = _completions - 1) == 1 then
+            acknowledgement()
+          end
+      end
 
-    var did_forward: Bool = false
+      var did_forward: Bool = false
 
-    for message in _buffer.values() do
-      client.forward(this, message, replay)
-      did_forward = true
-    end
+      for message in _buffer.values() do
+        client.forward(this, message, replay)
+        did_forward = true
+      end
 
-    if not did_forward then
+      if not did_forward then
+        acknowledgement()
+      end
+    else
       acknowledgement()
     end
   
