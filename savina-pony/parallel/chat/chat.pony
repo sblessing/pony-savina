@@ -447,8 +447,7 @@ actor Poker
       end
       
       for l in Range[USize](0, turns.size()) do
-        try @printf[I32]("%d %d\n".cstring(), turns.size(), turns(l)?.size()) end
-        //try qos.push(SampleStats(turns.pop()?).stddev()) end
+        try qos.push(SampleStats(turns.pop()?).stddev()) end
       end
 
       _env.out.print(
