@@ -466,7 +466,7 @@ actor Poker
 
       _env.out.print(
         "".join([
-            Format("" where width = 31)
+            Format("Turns" where width = 31)
             Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
             Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
             Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
