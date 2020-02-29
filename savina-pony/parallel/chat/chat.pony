@@ -4,6 +4,8 @@ use "time"
 use "random"
 use "../../util"
 use "math"
+use "format"
+use "term"
 
 type ClientMap is Map[U64, Client]
 type FriendSet is SetIs[Client]
@@ -329,12 +331,14 @@ actor Poker
   var _directories: Array[Directory] val
   var _runtimes: Array[Array[Accumulator]]
   var _accumulations: USize
-  var _finals: Array[Array[String]]
+  var _finals: Array[Array[F64]]
   var _factory: BehaviorFactory
   var _bench: (AsyncBenchmarkCompletion | None)
   var _last: Bool
+  var _turn_series: Array[F64]
+  var _env: Env
   
-  new create(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory) =>
+  new create(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, env: Env) =>
     _clients = clients
     _logouts = 0
     _confirmations = 0
@@ -342,10 +346,12 @@ actor Poker
     _directories = directories
     _runtimes = Array[Array[Accumulator]]
     _accumulations = 0
-    _finals = Array[Array[String]]
+    _finals = Array[Array[F64]]
     _factory = factory
     _bench = None
     _last = false
+    _turn_series = Array[F64]
+    _env = env
 
   be apply(bench: AsyncBenchmarkCompletion, last: Bool) =>
     _confirmations = _directories.size()
@@ -355,7 +361,7 @@ actor Poker
 
     var turns: U64 = _turns
     var index: USize = 0
-    var values: Array[String] = Array[String]
+    var values: Array[F64] = Array[F64].init(0, _turns.usize())
 
     _finals.push(values)
 
@@ -373,8 +379,6 @@ actor Poker
     let accumulators = Array[Accumulator]
 
     while ( turns = turns - 1 ) >= 1 do
-      values.push("") //for later replacement by index
-
       let accumulator = Accumulator(_clients.usize())
 
       for directory in _directories.values() do
@@ -419,14 +423,53 @@ actor Poker
 
   be collect(i: USize, j: USize, duration: F64) =>
     try
-      _finals(i)?(j)? = duration.string()
+      _finals(i)?(j)? = duration
+      _turn_series.push(duration)
     end
 
     if ( _accumulations = _accumulations - 1 ) == 1 then
-      for iteration in _finals.values() do 
-        @printf[I32](" ".join(iteration.values()).cstring())
-        @printf[I32]("\n".cstring())
+      let stats = SampleStats(_turn_series = Array[F64])
+      var turns = Array[Array[F64]].init(Array[F64].init(0, _turns.usize()), _finals.size())
+      var qos = Array[F64]
+      var index = USize(0)
+
+      while (_turns = _turns - 1) >= 1 do
+        for iter in _finals.values() do
+          try turns(index)?.push(iter(index)?) end
+        end
+
+        index = index + 1
       end
+
+      for k in Range[USize](0, turns.size()) do
+        try qos.push(SampleStats(turns.pop()?).stddev()) end
+      end
+
+      _env.out.print(
+        "".join(
+          [ ANSI.bold()
+            Format("" where width = 31)
+            Format("j-mean" where width = 18, align = AlignRight)
+            Format("j-median" where width = 18, align = AlignRight)
+            Format("j-error" where width = 18, align = AlignRight)
+            Format("j-stddev" where width = 18, align = AlignRight)
+            Format("quality of service" where width = 32, align = AlignRight)
+            ANSI.reset()
+          ].values()
+        )
+      )
+
+      _env.out.print(
+        "".join([
+            Format("" where width = 31)
+            Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
+            Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
+            Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
+            Format(stats.stddev().string() where width = 18, align = AlignRight)
+            Format(SampleStats(qos = Array[F64]).median().string() where width = 32, align = AlignRight)
+          ].values()
+        )
+      )
     end
 
 class iso ChatApp is AsyncActorBenchmark
@@ -459,7 +502,7 @@ class iso ChatApp is AsyncActorBenchmark
       dirs
     end
 
-    _poker = Poker(_clients, _turns, _directories, _factory)
+    _poker = Poker(_clients, _turns, _directories, _factory, env)
 
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => _poker(c, last)
 

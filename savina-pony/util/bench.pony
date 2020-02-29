@@ -42,6 +42,7 @@ class Result
           Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
           Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
           Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
+          Format(stats.stddev().string() where width = 18, align = AlignRight)
         ].values())
     else
       ",".join([
@@ -70,9 +71,10 @@ class OutputManager
       _print("".join(
         [ ANSI.bold()
           Format("Benchmark" where width = 31)
-          Format("mean" where width = 18, align = AlignRight)
-          Format("median" where width = 18, align = AlignRight)
-          Format("error" where width = 18, align = AlignRight)
+          Format("i-mean" where width = 18, align = AlignRight)
+          Format("i-median" where width = 18, align = AlignRight)
+          Format("i-error" where width = 18, align = AlignRight)
+          Format("i-stddev" where width = 18, align = AlignRight)
           ANSI.reset()
         ].values()))
     end
