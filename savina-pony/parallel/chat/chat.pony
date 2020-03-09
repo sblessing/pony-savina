@@ -181,12 +181,12 @@ actor Client
       i = i + 1 ; chat = c
     end
 
-    let done = recover val {(): None => _directory.completed(accumulator)} end
+    let done = recover val {(): None => accumulator.stop() /*_directory.completed(accumulator)*/} end
 
     match behavior(_dice)
     | Post => chat.post(None, done)
     | Leave => chat.leave(this, false, done)
-    | Compute => Fibonacci(35) ; _directory.completed(accumulator) //Mandelbrot(chat)
+    | Compute => Fibonacci(35) ; accumulator.stop() //_directory.completed(accumulator) //Mandelbrot(chat)
     | Invite => 
       let created = Chat(this)
 
@@ -215,7 +215,8 @@ actor Client
 
          be apply() =>
            if( acknowledgements = acknowledgements - 1) == 1 then
-             _directory.completed(accumulator)
+             //_directory.completed(accumulator)
+             accumulator.stop()
            end
       end
 
@@ -224,27 +225,28 @@ actor Client
         try f(k)?.invite(created, token) end
       end
     else
-      _directory.completed(accumulator)
+      //_directory.completed(accumulator)
+      accumulator.stop()
     end
 
 actor Directory
   let _clients: ClientMap
   let _random: SimpleRand
-  var _start_size: USize
-  var _completions: USize
+  //var _start_size: USize
+  //var _completions: USize
   var _poker: (Poker | None)
 
   new create(seed: U64) =>
     _clients = ClientMap
     _random = SimpleRand(seed)
-    _start_size = 0
-    _completions = 0
+    //_start_size = 0
+    //_completions = 0
     _poker = None
 
-  be prepare(poker: Poker, turns: U64) =>
-    _start_size = _clients.size()
-    _completions = _start_size * turns.usize()
-    _poker = poker
+  //be prepare(poker: Poker/*, turns: U64*/) =>
+    //_start_size = _clients.size()
+    //_completions = turns.usize()//_start_size * turns.usize()
+    //_poker = poker
 
   be login(id: U64) =>
     let new_client = Client(id, this, _random.next())
@@ -282,33 +284,37 @@ actor Directory
       end
     end
 
-  be broadcast(factory: BehaviorFactory, accumulator: Accumulator) =>
+  be poke(factory: BehaviorFactory, accumulator: Accumulator) =>
     for client in _clients.values() do
       client.act(factory, accumulator)
     end
 
-  be completed(accumulator: Accumulator) =>
-    accumulator.stop()
+  /*be completed(/*accumulator: Accumulator*/) =>
+    //accumulator.stop()
   
     if ( _completions = _completions - 1 ) == 1 then
       match _poker
       | let poker: Poker => poker.confirm()
       end
-    end
+    end*/
 
-  be disconnect() =>
+  be disconnect(poker: Poker) =>
+    _poker = poker 
+
     for c in _clients.values() do
       c.logout()
     end
 
 actor Accumulator
+  let _poker: Poker
   var _start: F64
   var _end: F64
   var _duration: F64
   var _expected: USize
   var _did_stop: Bool
 
-  new create(expected: USize) =>
+  new create(poker: Poker, expected: USize) =>
+    _poker = poker
     _start = Time.millis().f64()
     _end = 0
     _duration = 0
@@ -320,6 +326,8 @@ actor Accumulator
       _end = Time.millis().f64()
       _duration = _end - _start
       _did_stop = true
+
+      _poker.confirm()
     end
 
    be print(poker: Poker, i: USize, j: USize) =>
@@ -352,8 +360,8 @@ actor Poker
     _last = false
 
   be apply(bench: AsyncBenchmarkCompletion, last: Bool) =>
-    _confirmations = _directories.size()
-    _logouts = _confirmations
+    _confirmations = _turns.usize()
+    _logouts = _directories.size()
     _bench = bench
     _last = last
 
@@ -370,19 +378,19 @@ actor Poker
       end
     end
 
-    for directory in _directories.values() do
+    /*for directory in _directories.values() do
       directory.prepare(this, _turns)
-    end
+    end*/
 
     let accumulators = Array[Accumulator]
 
     while ( turns = turns - 1 ) >= 1 do
       values.push("") //for later replacement by index
 
-      let accumulator = Accumulator(_clients.usize())
+      let accumulator = Accumulator(this, _clients.usize())
 
       for directory in _directories.values() do
-        directory.broadcast(_factory, accumulator)
+        directory.poke(_factory, accumulator)
       end
 
       accumulators.push(accumulator)
@@ -393,7 +401,7 @@ actor Poker
   be confirm() =>
     if (_confirmations = _confirmations - 1 ) == 1 then
       for d in _directories.values() do
-        d.disconnect()
+        d.disconnect(this)
       end
     end
 
