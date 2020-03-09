@@ -4,21 +4,13 @@ use "time"
 use "random"
 use "../../util"
 use "math"
+use "format"
+use "term"
 
 type ClientMap is Map[U64, Client]
 type FriendSet is SetIs[Client]
 type ChatSet is SetIs[Chat]
 type ClientSet is SetIs[Client]
-
-primitive Arguments
-  fun apply(spec: CommandSpec iso, env: Env): Command val ? =>
-    recover
-      match CommandParser(consume spec).parse(env.args, env.vars)
-      | let command: Command box => command
-      | let help: CommandHelp => help.print_help(env.out) ; env.exitcode(0) ; error
-      | let syntax: SyntaxError => env.out.print(syntax.string()) ; env.exitcode(1) ; error
-      end
-    end
 
 primitive Post
 primitive Leave
@@ -63,7 +55,7 @@ class val BehaviorFactory
 actor Chat
   let _members: ClientSet
   var _buffer: Array[(Array[U8] val | None)]
-
+  
   new create(initiator: Client) =>
     _members = ClientSet
     _buffer =  Array[(Array[U8] val | None)]
@@ -71,7 +63,11 @@ actor Chat
     _members.set(initiator)
 
   be post(payload: (Array[U8] val | None), done: {(): None} val) =>
-    _buffer.push(payload)
+    ifdef "_BENCH_NO_BUFFERED_CHATS" then
+      None
+    else
+      _buffer.push(payload)
+    end
 
     var token = object
       var _acknowledgements: USize = _members.size()
@@ -94,24 +90,28 @@ actor Chat
   be join(client: Client, acknowledgement: {tag(): None} tag) =>
     _members.set(client)
    
-    let replay = object
-      var _completions: USize = _buffer.size()
-      
-      be apply() =>
-        if (_completions = _completions - 1) == 1 then
-          acknowledgement()
-        end
-    end
+    ifdef "_BENCH_NO_BUFFERED_CHATS" then
+       acknowledgement()
+    else
+      let replay = object
+        var _completions: USize = _buffer.size()
+        
+        be apply() =>
+          if (_completions = _completions - 1) == 1 then
+            acknowledgement()
+          end
+      end
 
-    var did_forward: Bool = false
+      var did_forward: Bool = false
 
-    for message in _buffer.values() do
-      client.forward(this, message, replay)
-      did_forward = true
-    end
+      for message in _buffer.values() do
+        client.forward(this, message, replay)
+        did_forward = true
+      end
 
-    if not did_forward then
-      acknowledgement()
+      if not did_forward then
+        acknowledgement()
+      end  
     end
   
   be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
@@ -341,12 +341,14 @@ actor Poker
   var _directories: Array[Directory] val
   var _runtimes: Array[Array[Accumulator]]
   var _accumulations: USize
-  var _finals: Array[Array[String]]
+  var _finals: Array[Array[F64]]
   var _factory: BehaviorFactory
   var _bench: (AsyncBenchmarkCompletion | None)
   var _last: Bool
+  var _turn_series: Array[F64]
+  var _env: Env
   
-  new create(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory) =>
+  new create(clients: U64, turns: U64, directories: Array[Directory] val, factory: BehaviorFactory, env: Env) =>
     _clients = clients
     _logouts = 0
     _confirmations = 0
@@ -354,10 +356,12 @@ actor Poker
     _directories = directories
     _runtimes = Array[Array[Accumulator]]
     _accumulations = 0
-    _finals = Array[Array[String]]
+    _finals = Array[Array[F64]]
     _factory = factory
     _bench = None
     _last = false
+    _turn_series = Array[F64]
+    _env = env
 
   be apply(bench: AsyncBenchmarkCompletion, last: Bool) =>
     _confirmations = _turns.usize()
@@ -367,7 +371,7 @@ actor Poker
 
     var turns: U64 = _turns
     var index: USize = 0
-    var values: Array[String] = Array[String]
+    var values: Array[F64] = Array[F64].init(0, _turns.usize())
 
     _finals.push(values)
 
@@ -431,14 +435,56 @@ actor Poker
 
   be collect(i: USize, j: USize, duration: F64) =>
     try
-      _finals(i)?(j)? = duration.string()
+      _finals(i)?(j)? = duration
+      _turn_series.push(duration)
     end
 
     if ( _accumulations = _accumulations - 1 ) == 1 then
-      for iteration in _finals.values() do 
-        @printf[I32](" ".join(iteration.values()).cstring())
-        @printf[I32]("\n".cstring())
+      let stats = SampleStats(_turn_series = Array[F64])
+      var turns = Array[Array[F64]]
+      var qos = Array[F64]
+
+      for k in Range[USize](0, _turns.usize()) do
+        try 
+          turns(k)? 
+        else 
+          turns.push(Array[F64]) 
+        end
+
+        for iter in _finals.values() do 
+          try turns(k)?.push(iter(k)?) end
+        end
       end
+      
+      for l in Range[USize](0, turns.size()) do
+        try qos.push(SampleStats(turns.pop()?).stddev()) end
+      end
+
+      _env.out.print(
+        "".join(
+          [ ANSI.bold()
+            Format("" where width = 31)
+            Format("j-mean" where width = 18, align = AlignRight)
+            Format("j-median" where width = 18, align = AlignRight)
+            Format("j-error" where width = 18, align = AlignRight)
+            Format("j-stddev" where width = 18, align = AlignRight)
+            Format("quality of service" where width = 32, align = AlignRight)
+            ANSI.reset()
+          ].values()
+        )
+      )
+
+      _env.out.print(
+        "".join([
+            Format("Turns" where width = 31)
+            Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
+            Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
+            Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
+            Format(stats.stddev().string() where width = 18, align = AlignRight)
+            Format(SampleStats(qos = Array[F64]).median().string() where width = 32, align = AlignRight)
+          ].values()
+        )
+      )
     end
 
 class iso ChatApp is AsyncActorBenchmark
@@ -471,7 +517,7 @@ class iso ChatApp is AsyncActorBenchmark
       dirs
     end
 
-    _poker = Poker(_clients, _turns, _directories, _factory)
+    _poker = Poker(_clients, _turns, _directories, _factory, env)
 
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool) => _poker(c, last)
 
