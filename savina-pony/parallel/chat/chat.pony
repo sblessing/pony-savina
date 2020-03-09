@@ -389,8 +389,6 @@ actor Poker
     let accumulators = Array[Accumulator]
 
     while ( turns = turns - 1 ) >= 1 do
-      values.push("") //for later replacement by index
-
       let accumulator = Accumulator(this, _clients.usize())
 
       for directory in _directories.values() do
