@@ -241,11 +241,12 @@ actor Directory
 
   be login(id: U64) =>
     let new_client = Client(id, this, _random.next())
+    let befriend: U32 = _befriend.u32()
 
     _clients(id) = new_client
     
     for client in _clients.values() do
-      if _random.nextInt(100) < _befriend then
+      if _random.nextInt(100) < befriend then
         client.befriend(new_client)
         new_client.befriend(client)
       end
