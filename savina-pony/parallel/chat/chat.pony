@@ -181,12 +181,12 @@ actor Client
       i = i + 1 ; chat = c
     end
 
-    let done = recover val {(): None => accumulator.stop() /*_directory.completed(accumulator)*/} end
+    let done = recover val {(): None => accumulator.stop()} end
 
     match behavior(_dice)
     | Post => chat.post(None, done)
     | Leave => chat.leave(this, false, done)
-    | Compute => Fibonacci(35) ; accumulator.stop() //_directory.completed(accumulator) //Mandelbrot(chat)
+    | Compute => Fibonacci(35) ; accumulator.stop()
     | Invite => 
       let created = Chat(this)
 
@@ -215,7 +215,6 @@ actor Client
 
          be apply() =>
            if( acknowledgements = acknowledgements - 1) == 1 then
-             //_directory.completed(accumulator)
              accumulator.stop()
            end
       end
@@ -225,28 +224,20 @@ actor Client
         try f(k)?.invite(created, token) end
       end
     else
-      //_directory.completed(accumulator)
       accumulator.stop()
     end
 
 actor Directory
   let _clients: ClientMap
   let _random: SimpleRand
-  //var _start_size: USize
-  //var _completions: USize
+  let _befriend: U64
   var _poker: (Poker | None)
 
-  new create(seed: U64) =>
+  new create(seed: U64, befriend: U64) =>
     _clients = ClientMap
     _random = SimpleRand(seed)
-    //_start_size = 0
-    //_completions = 0
+    _befriend = befriend
     _poker = None
-
-  //be prepare(poker: Poker/*, turns: U64*/) =>
-    //_start_size = _clients.size()
-    //_completions = turns.usize()//_start_size * turns.usize()
-    //_poker = poker
 
   be login(id: U64) =>
     let new_client = Client(id, this, _random.next())
@@ -254,7 +245,7 @@ actor Directory
     _clients(id) = new_client
     
     for client in _clients.values() do
-      if _random.nextInt(100) < 10 then
+      if _random.nextInt(100) < _befriend then
         client.befriend(new_client)
         new_client.befriend(client)
       end
@@ -288,15 +279,6 @@ actor Directory
     for client in _clients.values() do
       client.act(factory, accumulator)
     end
-
-  /*be completed(/*accumulator: Accumulator*/) =>
-    //accumulator.stop()
-  
-    if ( _completions = _completions - 1 ) == 1 then
-      match _poker
-      | let poker: Poker => poker.confirm()
-      end
-    end*/
 
   be disconnect(poker: Poker) =>
     _poker = poker 
@@ -381,10 +363,6 @@ actor Poker
         _directories(index)?.login(client)
       end
     end
-
-    /*for directory in _directories.values() do
-      directory.prepare(this, _turns)
-    end*/
 
     let accumulators = Array[Accumulator]
 
@@ -501,6 +479,7 @@ class iso ChatApp is AsyncActorBenchmark
     let post: U64 = 80
     let leave: U64 = 25
     let invite: U64 = 25
+    let befriend: U64 = 10
     let rand = SimpleRand(42)
 
     _factory = recover BehaviorFactory(compute, post, leave, invite) end
@@ -509,7 +488,7 @@ class iso ChatApp is AsyncActorBenchmark
       let dirs = Array[Directory](directories)
 
       for i in Range[USize](0, directories.usize()) do
-        dirs.push(Directory(rand.next()))
+        dirs.push(Directory(rand.next(), befriend))
       end
         
       dirs
