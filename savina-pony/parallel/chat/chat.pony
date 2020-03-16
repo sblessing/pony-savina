@@ -351,6 +351,7 @@ actor Poker
     _logouts = _directories.size()
     _bench = bench
     _last = last
+    _accumulations = 0
 
     var turns: U64 = _turns
     var index: USize = 0
@@ -388,26 +389,22 @@ actor Poker
 
   be finished() =>
     if (_logouts = _logouts - 1 ) == 1 then
-      match _bench
-      | let bench: AsyncBenchmarkCompletion => bench.complete()
-      end
-      
-      if _last then
-        var iteration: USize = 0
-        var turn: USize = 0
+      var iteration: USize = 0
+      var turn: USize = 0
 
-        for accumulators in _runtimes.values() do
-          for accumulator in accumulators.values() do
-            accumulator.print(this, iteration, turn)
-            turn = turn + 1
-          end
-
-          _accumulations = _accumulations + turn
-          turn = 0
-
-          iteration = iteration + 1
+      for accumulators in _runtimes.values() do
+        for accumulator in accumulators.values() do
+          accumulator.print(this, iteration, turn)
+          turn = turn + 1
         end
-      end      
+
+        _accumulations = _accumulations + turn
+        turn = 0
+
+        iteration = iteration + 1
+      end
+
+      _runtimes = Array[Array[Accumulator]] 
     end
 
   be collect(i: USize, j: USize, duration: F64) =>
@@ -417,51 +414,57 @@ actor Poker
     end
 
     if ( _accumulations = _accumulations - 1 ) == 1 then
-      let stats = SampleStats(_turn_series = Array[F64])
-      var turns = Array[Array[F64]]
-      var qos = Array[F64]
-
-      for k in Range[USize](0, _turns.usize()) do
-        try 
-          turns(k)? 
-        else 
-          turns.push(Array[F64]) 
-        end
-
-        for iter in _finals.values() do 
-          try turns(k)?.push(iter(k)?) end
-        end
-      end
+      match _bench
+      | let bench: AsyncBenchmarkCompletion => bench.complete()
       
-      for l in Range[USize](0, turns.size()) do
-        try qos.push(SampleStats(turns.pop()?).stddev()) end
+        if _last then
+          let stats = SampleStats(_turn_series = Array[F64])
+          var turns = Array[Array[F64]]
+          var qos = Array[F64]
+
+          for k in Range[USize](0, _turns.usize()) do
+            try 
+              turns(k)? 
+            else 
+              turns.push(Array[F64]) 
+            end
+
+            for iter in _finals.values() do 
+              try turns(k)?.push(iter(k)?) end
+            end
+          end
+          
+          for l in Range[USize](0, turns.size()) do
+            try qos.push(SampleStats(turns.pop()?).stddev()) end
+          end
+
+          bench.append(
+            "".join(
+              [ ANSI.bold()
+                Format("" where width = 31)
+                Format("j-mean" where width = 18, align = AlignRight)
+                Format("j-median" where width = 18, align = AlignRight)
+                Format("j-error" where width = 18, align = AlignRight)
+                Format("j-stddev" where width = 18, align = AlignRight)
+                Format("quality of service" where width = 32, align = AlignRight)
+                ANSI.reset()
+              ].values()
+            )
+          )
+
+          bench.append(
+            "".join([
+                Format("Turns" where width = 31)
+                Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
+                Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
+                Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
+                Format(stats.stddev().string() where width = 18, align = AlignRight)
+                Format(SampleStats(qos = Array[F64]).median().string() where width = 32, align = AlignRight)
+              ].values()
+            )
+          )
+        end
       end
-
-      _env.out.print(
-        "".join(
-          [ ANSI.bold()
-            Format("" where width = 31)
-            Format("j-mean" where width = 18, align = AlignRight)
-            Format("j-median" where width = 18, align = AlignRight)
-            Format("j-error" where width = 18, align = AlignRight)
-            Format("j-stddev" where width = 18, align = AlignRight)
-            Format("quality of service" where width = 32, align = AlignRight)
-            ANSI.reset()
-          ].values()
-        )
-      )
-
-      _env.out.print(
-        "".join([
-            Format("Turns" where width = 31)
-            Format(stats.mean().string() + " ms" where width = 18, align = AlignRight)
-            Format(stats.median().string() + " ms" where width = 18, align = AlignRight)
-            Format("±" + stats.err().string() + " %" where width = 18, align = AlignRight)
-            Format(stats.stddev().string() where width = 18, align = AlignRight)
-            Format(SampleStats(qos = Array[F64]).median().string() where width = 32, align = AlignRight)
-          ].values()
-        )
-      )
     end
 
 class iso ChatApp is AsyncActorBenchmark
@@ -472,10 +475,10 @@ class iso ChatApp is AsyncActorBenchmark
   var _poker: Poker
 
   new iso create(env: Env) =>
-    _clients = 32768
+    _clients = 512
     _turns = 20
 
-    let directories: USize = USize(256)
+    let directories: USize = USize(8)
     let compute: U64 = 50
     let post: U64 = 80
     let leave: U64 = 25

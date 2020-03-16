@@ -12,6 +12,7 @@ interface tag BenchmarkRunner
 
 interface tag AsyncBenchmarkCompletion 
   be complete()
+  be append(s: String)
 
 class Result
   let _benchmark: String
@@ -162,3 +163,6 @@ actor Savina
   be apply(iterations: U64, benchmark: AsyncActorBenchmark iso) =>
     _benchmarks.push((iterations, consume benchmark))
     _next()
+
+  be append(s: String) =>
+    _env.out.print(s)
