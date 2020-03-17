@@ -315,14 +315,18 @@ actor Accumulator
 
    be print(poker: Poker, i: USize, j: USize) =>
      poker.collect(i, j, _duration)
+    
+   fun _final() =>
+     @printf[I32]("Accumulator %p destroyed\n".cstring(), this)
 
 actor Poker
   var _clients: U64
   var _logouts: USize
   var _confirmations: USize
   var _turns: U64
+  var _iteration: USize
   var _directories: Array[Directory] val
-  var _runtimes: Array[Array[Accumulator]]
+  var _runtimes: Array[Accumulator]
   var _accumulations: USize
   var _finals: Array[Array[F64]]
   var _factory: BehaviorFactory
@@ -336,8 +340,9 @@ actor Poker
     _logouts = 0
     _confirmations = 0
     _turns = turns
+    _iteration = 0
     _directories = directories
-    _runtimes = Array[Array[Accumulator]]
+    _runtimes = Array[Accumulator]
     _accumulations = 0
     _finals = Array[Array[F64]]
     _factory = factory
@@ -353,6 +358,8 @@ actor Poker
     _last = last
     _accumulations = 0
 
+    @printf[I32]("iteration starts, accumulator count: %d!\n".cstring(), _runtimes.size())
+
     var turns: U64 = _turns
     var index: USize = 0
     var values: Array[F64] = Array[F64].init(0, _turns.usize())
@@ -366,8 +373,6 @@ actor Poker
       end
     end
 
-    let accumulators = Array[Accumulator]
-
     while ( turns = turns - 1 ) >= 1 do
       let accumulator = Accumulator(this, _clients.usize())
 
@@ -375,10 +380,8 @@ actor Poker
         directory.poke(_factory, accumulator)
       end
 
-      accumulators.push(accumulator)
+      _runtimes.push(accumulator)
     end
-
-    _runtimes.push(accumulators)
     
   be confirm() =>
     if (_confirmations = _confirmations - 1 ) == 1 then
@@ -389,22 +392,17 @@ actor Poker
 
   be finished() =>
     if (_logouts = _logouts - 1 ) == 1 then
-      var iteration: USize = 0
       var turn: USize = 0
 
-      for accumulators in _runtimes.values() do
-        for accumulator in accumulators.values() do
-          accumulator.print(this, iteration, turn)
-          turn = turn + 1
-        end
-
-        _accumulations = _accumulations + turn
-        turn = 0
-
-        iteration = iteration + 1
+      for accumulator in _runtimes.values() do
+        _accumulations = _accumulations + 1
+        accumulator.print(this, _iteration, turn)    
+        turn = turn + 1
       end
 
-      _runtimes = Array[Array[Accumulator]] 
+      _runtimes = Array[Accumulator]
+
+      @printf[I32]("iteration has finished!\n".cstring())
     end
 
   be collect(i: USize, j: USize, duration: F64) =>
@@ -414,6 +412,8 @@ actor Poker
     end
 
     if ( _accumulations = _accumulations - 1 ) == 1 then
+      _iteration = _iteration + 1
+
       match _bench
       | let bench: AsyncBenchmarkCompletion => bench.complete()
       
@@ -475,7 +475,7 @@ class iso ChatApp is AsyncActorBenchmark
   var _poker: Poker
 
   new iso create(env: Env) =>
-    _clients = 512
+    _clients = 1024
     _turns = 20
 
     let directories: USize = USize(8)
