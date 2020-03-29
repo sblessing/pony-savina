@@ -70,7 +70,7 @@ actor Chat
     end
 
     if _members.size() > 0 then
-      accumulator.bump(_members.size() - 1)
+      accumulator.bump(_members.size())
     
       for member in _members.values() do
         member.forward(this, payload, accumulator)
@@ -86,7 +86,7 @@ actor Chat
        accumulator.stop()
     else
       if _buffer.size() > 0 then
-        accumulator.bump(_buffer.size() - 1)
+        accumulator.bump(_buffer.size())
     
         for message in _buffer.values() do
           client.forward(this, message, accumulator)
@@ -185,8 +185,7 @@ actor Client
         invitations = 1
       end
 
-      // -1 since the accumulator expects this client to stop
-      accumulator.bump(invitations - 1)
+      accumulator.bump(invitations)
 
       for k in Range[USize](0, invitations) do
         //pick random index k??
@@ -266,7 +265,7 @@ actor Accumulator
     _did_stop = false
 
   be bump(expected: USize) =>
-    _expected = _expected + expected
+    _expected = _expected + expected - 1
 
   be stop() =>
     if (_expected = _expected - 1) == 1 then
