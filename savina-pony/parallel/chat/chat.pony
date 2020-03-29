@@ -265,7 +265,7 @@ actor Accumulator
     _did_stop = false
 
   be bump(expected: USize) =>
-    _expected = _expected + expected - 1
+    _expected = ( _expected + expected ) - 1
 
   be stop() =>
     if (_expected = _expected - 1) == 1 then
