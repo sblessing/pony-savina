@@ -51,7 +51,7 @@ class val BehaviorFactory
     end
     
     action
-    
+
 actor Chat
   let _members: ClientSet
   var _buffer: Array[(Array[U8] val | None)]
@@ -62,61 +62,43 @@ actor Chat
 
     _members.set(initiator)
 
-  be post(payload: (Array[U8] val | None), done: {(): None} val) =>
+  be post(payload: (Array[U8] val | None), accumulator: Accumulator) =>
     ifdef "_BENCH_NO_BUFFERED_CHATS" then
       None
     else
       _buffer.push(payload)
     end
 
-    var token = object
-      var _acknowledgements: USize = _members.size()
-
-      be apply() =>
-        if (_acknowledgements = _acknowledgements - 1) == 1 then
-          done()
-        end
-    end
-
-    for member in _members.values() do
-      member.forward(this, payload, token)
+    if _members.size() > 0 then
+      accumulator.bump(_members.size() - 1)
+    
+      for member in _members.values() do
+        member.forward(this, payload, accumulator)
+      end
     else
-      done()
+      accumulator.stop()
     end
 
-  be acknowledge(acknowledgement: {tag (): None} tag) =>
-    acknowledgement()
-
-  be join(client: Client, acknowledgement: {tag(): None} tag) =>
+  be join(client: Client, accumulator: Accumulator) =>
     _members.set(client)
    
     ifdef "_BENCH_NO_BUFFERED_CHATS" then
-       acknowledgement()
+       accumulator.stop()
     else
-      let replay = object
-        var _completions: USize = _buffer.size()
-        
-        be apply() =>
-          if (_completions = _completions - 1) == 1 then
-            acknowledgement()
-          end
-      end
-
-      var did_forward: Bool = false
-
-      for message in _buffer.values() do
-        client.forward(this, message, replay)
-        did_forward = true
-      end
-
-      if not did_forward then
-        acknowledgement()
+      if _buffer.size() > 0 then
+        accumulator.bump(_buffer.size() - 1)
+    
+        for message in _buffer.values() do
+          client.forward(this, message, accumulator)
+        end
+      else 
+        accumulator.stop()
       end  
     end
   
-  be leave(client: Client, did_logout: Bool, done: {(): None} val) =>
+  be leave(client: Client, did_logout: Bool, accumulator: (Accumulator | None)) =>
     _members.unset(client)
-    client.left(this, did_logout, done)
+    client.left(this, did_logout, accumulator)
 
 actor Client
   let _id: U64
@@ -139,32 +121,28 @@ actor Client
   
   be logout() =>
     for chat in _chats.values() do
-      chat.leave(this, true, recover val {(): None => None} end)
+      chat.leave(this, true, None)
     else 
       _directory.left(_id)
     end
 
-  be left(chat: Chat, did_logout: Bool, done: {(): None} val) =>
+  be left(chat: Chat, did_logout: Bool, accumulator: (Accumulator | None)) =>
     _chats.unset(chat)
       
     if ( _chats.size() == 0 ) and did_logout then
       _directory.left(_id)
     else
-      done()
+      match accumulator
+      | let accumulator': Accumulator => accumulator'.stop()
+      end
     end
 
-  be invite(chat: Chat, token: {tag (): None} tag) =>
+  be invite(chat: Chat, accumulator: Accumulator) =>
     _chats.set(chat)
-    chat.join(this, token)
+    chat.join(this, accumulator)
 
-  be online(id: U64) =>
-    None //No-op
-
-  be offline(id: U64) =>
-    None //No-op
-
-  be forward(chat: Chat, payload: (Array[U8] val | None), token: {tag (): None} tag) =>
-    token()
+  be forward(chat: Chat, payload: (Array[U8] val | None), accumulator: Accumulator) =>
+    accumulator.stop()
 
   be act(behavior: BehaviorFactory, accumulator: Accumulator) =>
     let index = _rand.nextInt(_chats.size().u32()).usize()
@@ -181,11 +159,9 @@ actor Client
       i = i + 1 ; chat = c
     end
 
-    let done = recover val {(): None => accumulator.stop()} end
-
     match behavior(_dice)
-    | Post => chat.post(None, done)
-    | Leave => chat.leave(this, false, done)
+    | Post => chat.post(None, accumulator)
+    | Leave => chat.leave(this, false, accumulator)
     | Compute => Fibonacci(35) ; accumulator.stop()
     | Invite => 
       let created = Chat(this)
@@ -209,19 +185,12 @@ actor Client
         invitations = 1
       end
 
-      // prepare the completion handler
-      let token = object
-        var acknowledgements: USize = invitations
-
-         be apply() =>
-           if( acknowledgements = acknowledgements - 1) == 1 then
-             accumulator.stop()
-           end
-      end
+      // -1 since the accumulator expects this client to stop
+      accumulator.bump(invitations - 1)
 
       for k in Range[USize](0, invitations) do
         //pick random index k??
-        try f(k)?.invite(created, token) end
+        try f(k)?.invite(created, accumulator) end
       end
     else
       accumulator.stop()
@@ -255,14 +224,6 @@ actor Directory
   be logout(id: U64) =>
     try
       _clients(id)?.logout()
-    end
-
-  be status(id: U64, requestor: Client) =>
-    try
-      _clients(id)?
-      requestor.online(id)
-    else
-      requestor.offline(id)
     end
 
   be left(id: U64) =>
@@ -304,6 +265,9 @@ actor Accumulator
     _expected = expected
     _did_stop = false
 
+  be bump(expected: USize) =>
+    _expected = _expected + expected
+
   be stop() =>
     if (_expected = _expected - 1) == 1 then
       _end = Time.millis().f64()
@@ -315,9 +279,6 @@ actor Accumulator
 
    be print(poker: Poker, i: USize, j: USize) =>
      poker.collect(i, j, _duration)
-    
-   fun _final() =>
-     @printf[I32]("Accumulator %p destroyed\n".cstring(), this)
 
 actor Poker
   var _clients: U64
@@ -357,8 +318,6 @@ actor Poker
     _bench = bench
     _last = last
     _accumulations = 0
-
-    @printf[I32]("iteration starts, accumulator count: %d!\n".cstring(), _runtimes.size())
 
     var turns: U64 = _turns
     var index: USize = 0
@@ -401,8 +360,6 @@ actor Poker
       end
 
       _runtimes = Array[Accumulator]
-
-      @printf[I32]("iteration has finished!\n".cstring())
     end
 
   be collect(i: USize, j: USize, duration: F64) =>
