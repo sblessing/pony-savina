@@ -190,6 +190,8 @@ actor Client
       for k in Range[USize](0, invitations) do
         //pick random index k??
         try f(k)?.invite(created, accumulator) end
+      else
+        accumulator.stop()
       end
     else
       accumulator.stop()
