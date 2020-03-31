@@ -182,17 +182,15 @@ actor Client
       var invitations: USize = s.next().usize() % _friends.size()
 
       if invitations == 0 then
-        invitations = 1
-      end
-
-      accumulator.bump(invitations)
-
-      for k in Range[USize](0, invitations) do
-        //pick random index k??
-        try f(k)?.invite(created, accumulator) end
-      else
         accumulator.stop()
-      end
+      else
+        accumulator.bump(invitations)
+
+        for k in Range[USize](0, invitations) do
+          //pick random index k??
+          try f(k)?.invite(created, accumulator) end
+        end
+      end      
     else
       accumulator.stop()
     end
