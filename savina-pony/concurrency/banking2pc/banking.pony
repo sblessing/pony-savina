@@ -6,49 +6,43 @@ use "../../util"
 class iso Banking is AsyncActorBenchmark
   var _accounts: U64
   var _transactions: U64
-  var _initial: F64
-  let _env: Env
 
-  new iso create(accounts: U64, transactions: U64, env: Env) =>
+  new iso create(accounts: U64, transactions: U64) =>
     _accounts = accounts
     _transactions = transactions
-    _initial =  2000 //F64.max_value() / ( _accounts * _transactions ).f64()
-    _env = env
-    // _env.out.print("initial: " + _initial.string())
 
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool) =>
-    Coordinator(c, _accounts, _transactions, _env)
+    Coordinator(c, _accounts, _transactions)
 
   fun tag name(): String => "Banking 2PC"
 
 actor Coordinator
   let _accounts: Array[Account]
   let _bench: AsyncBenchmarkCompletion
-  let _env: Env
   var _count: U64
+  let _tellers: U64
 
-  new create(c: AsyncBenchmarkCompletion, accounts: U64, transactions: U64, env: Env) =>
+  new create(c: AsyncBenchmarkCompletion, accounts: U64, transactions: U64) =>
     _bench = c
-    _env = env
     _accounts = Array[Account]
     _count = 0
 
-    let a1 = recover iso Array[Account] end
-    let a2 = recover iso Array[Account] end
-
-    let initial: F64 =  2000 //F64.max_value() / ( _accounts * _transactions ).f64()
+    let initial = F64.max_value() / ( accounts * transactions ).f64()
     for i in Range[U64](0, accounts) do
-      let a = Account(i, initial)
-      _accounts.push(a)
-      a1.push(a)
-      a2.push(a)
+      _accounts.push(Account(i, initial))
     end
 
-    Teller(this, initial, consume a1, transactions, env)
-    Teller(this, initial, consume a2, transactions, env)
+    _tellers = 1
+    for t in Range[U64](0, _tellers) do
+      let accs: Array[Account] iso = Array[Account]
+      for a in _accounts.values() do
+        accs.push(a)
+      end
+      Teller(this, initial, consume accs, transactions)
+    end
 
   be done() =>
-    if (_count = _count + 1) == 1 then
+    if (_count = _count + 1) == (_tellers - 1) then
       _bench.complete()
     end
 
@@ -86,28 +80,21 @@ actor Manager
   be no(account: Account) => _decide(account where commit = false)
 
 actor Teller
-  //let _bench: AsyncBenchmarkCompletion
   let _coordinator: Coordinator
   let _initial_balance: F64
   let _transactions: U64
 
   var _spawned: U64
-  // var _pending: (None | (U32, U32, U64, Bool))
 
   let _random: SimpleRand
 
   var _completed: U64
   var _accounts: Array[Account]
 
-  var _finals: Array[F64]
-  let _env: Env
-
-  var _retry: U64
-
   var _acquired: (None | U64)
   var _pending: (None | (U64, U64))
 
-  new create(coordinator: Coordinator, initial_balance: F64, accounts: Array[Account] iso, transactions: U64, env: Env) =>
+  new create(coordinator: Coordinator, initial_balance: F64, accounts: Array[Account] iso, transactions: U64) =>
     _coordinator = coordinator
     _initial_balance = initial_balance
     _transactions = transactions
@@ -115,10 +102,7 @@ actor Teller
     _random = SimpleRand(123456)
     _completed = 0
     _accounts = consume accounts
-    _finals = Array[F64].init(0, _accounts.size().usize())
-    _env = env
 
-    _retry = 0
     _acquired = None
     _pending = None
 
@@ -151,7 +135,6 @@ actor Teller
       match _acquired
         | let _: None =>
           if not acquired then
-            _retry = _retry + 1
             _next_transaction()
           else // acquire the next account
             match _pending
@@ -164,7 +147,6 @@ actor Teller
           end
         | let acc: U64 => true
           if not acquired then
-            _retry = _retry + 1
             try
               _accounts(acc.usize())?.release(this)
             end
@@ -186,7 +168,6 @@ actor Teller
 
                 _acquired = None
                 _pending = None
-                _retry = 0
                 _next_transaction()
             end
           end
@@ -201,17 +182,6 @@ actor Teller
 
     if _completed == _transactions then
       _coordinator.done()
-    end
-
-  be tell_balance(index: U64, amount: F64) =>
-    try
-      _finals(index.usize())? = amount
-      if (_completed = _completed + 1) == (_accounts.size() - 1).u64() then
-        for i in Range[U64](0, _finals.size().u64()) do
-          _env.out.print(i.string() + ": " + _finals(i.usize())?.string())
-        end
-        // _bench.complete()
-      end
     end
 
 class DebitMessage
@@ -274,7 +244,6 @@ actor Account
 
   be release(teller: Teller) =>
     acquired = false
-    // teller.ack()
 
   be commit() =>
     rollback = 0
@@ -315,6 +284,3 @@ actor Account
     else
       stash.push(CreditMessage(amount, manager))
     end
-
-  be get_balance(teller: Teller) =>
-    teller.tell_balance(index, balance)
