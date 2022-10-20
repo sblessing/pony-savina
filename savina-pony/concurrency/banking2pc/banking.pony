@@ -48,7 +48,6 @@ actor Coordinator
     Teller(this, initial, consume a2, transactions, env)
 
   be done() =>
-    _env.out.print("done")
     if (_count = _count + 1) == 1 then
       _bench.complete()
     end
@@ -93,7 +92,7 @@ actor Teller
   let _transactions: U64
 
   var _spawned: U64
-  var _pending: (None | (U32, U32, U64, Bool))
+  // var _pending: (None | (U32, U32, U64, Bool))
 
   let _random: SimpleRand
 
@@ -104,14 +103,15 @@ actor Teller
   let _env: Env
 
   var _retry: U64
-  
+
+  var _acquired: (None | U64)
+  var _pending: (None | (U64, U64))
 
   new create(coordinator: Coordinator, initial_balance: F64, accounts: Array[Account] iso, transactions: U64, env: Env) =>
     _coordinator = coordinator
     _initial_balance = initial_balance
     _transactions = transactions
     _spawned = 0
-    _pending = None
     _random = SimpleRand(123456)
     _completed = 0
     _accounts = consume accounts
@@ -119,6 +119,8 @@ actor Teller
     _env = env
 
     _retry = 0
+    _acquired = None
+    _pending = None
 
     _next_transaction()
 
@@ -126,94 +128,79 @@ actor Teller
     match _pending
       | let _: None =>
         if _spawned < _transactions then
-          let source = _random.nextInt(where max = _accounts.size().u32() - 1)
-          var dest = _random.nextInt(where max = _accounts.size().u32() - 1)
+          let source = _random.nextInt(where max = _accounts.size().u32() - 1).u64()
+          var dest = _random.nextInt(where max = _accounts.size().u32() - 1).u64()
 
           // TODO
           while source == dest do
-            dest = _random.nextInt(where max = _accounts.size().u32() - 1)
+            dest = _random.nextInt(where max = _accounts.size().u32() - 1).u64()
           end
 
           try
-            let source_account = _accounts(source.usize()) ?
-            let dest_account = _accounts(dest.usize()) ?
-            _pending = (source, dest, 2, true)
-
-            if (source < dest) then
-              source_account.ready(this)
-              dest_account.ready(this)
-            else
-              dest_account.ready(this)
-              source_account.ready(this)
-            end
+            _accounts(source.min(dest).usize())?.acquire(this)
           end
-        else
-          _env.out.print("enqueued all")
+          _pending = (source, dest)
         end
-      | (let source: U32, let dest: U32, let count: U64, let outcome: Bool) =>
+      | (let source: U64, let dest: U64) =>
         try
-          let source_account = _accounts(source.usize()) ?
-          let dest_account = _accounts(dest.usize()) ?
-          _pending = (source, dest, 2, true)
-
-          if (source < dest) then
-            source_account.ready(this)
-            dest_account.ready(this)
-          else
-            dest_account.ready(this)
-            source_account.ready(this)
-          end
+          _accounts(source.min(dest).usize())?.acquire(this)
         end
     end
 
-  fun ref _decide(send: Bool) =>
-    match _pending
-      | (let source: U32, let dest: U32, let count: U64, let outcome: Bool) =>
-        if (count - 1) == 0 then
-          if outcome and send then
-            let manager = Manager(this, 2)
-            let amount = _random.nextDouble() * 1000
-            try
-              _accounts(source.usize())?.credit(amount, manager)
-              _accounts(dest.usize())?.debit(amount, manager)
-            end
-            // _env.out.print(_spawned.string())
-            _spawned = _spawned + 1
-            _pending = None
-            _retry = 0
-          else
+  fun ref _reply(index: U64, acquired: Bool) =>
+      match _acquired
+        | let _: None =>
+          if not acquired then
             _retry = _retry + 1
-            if (_retry > 100) and ((_retry % 10) == 0) then
-              _env.out.print("retry: " + _retry.string() + " " + source.string() + "->" + dest.string())
-            end
-            // retry
-            // _env.out.print("retry")
-            try
-              _accounts(source.usize())?.abort()
-              _accounts(dest.usize())?.abort()
+            _next_transaction()
+          else // acquire the next account
+            match _pending
+              | (let source: U64, let dest: U64) =>
+                _acquired = index
+                try
+                  _accounts(source.max(dest).usize())?.acquire(this)
+                end
             end
           end
-          _next_transaction()
-        else
-          _pending = (source, dest, count - 1, outcome and send)
-        end
-    end
+        | let acc: U64 => true
+          if not acquired then
+            _retry = _retry + 1
+            try
+              _accounts(acc.usize())?.release(this)
+            end
+            _next_transaction()
+          else
+            match _pending
+              | (let source: U64, let dest: U64) =>
 
-  be yes() => _decide(where send = true)
+                let manager = Manager(this, 2)
+                let amount = _random.nextDouble() * 1000
+                try
+                  _accounts(source.usize())?.credit(amount, manager)
+                  _accounts(dest.usize())?.debit(amount, manager)
 
-  be no() => _decide(where send = false)
+                  _accounts(source.usize())?.release(this)
+                  _accounts(dest.usize())?.release(this)
+                end
+                _spawned = _spawned + 1
+
+                _acquired = None
+                _pending = None
+                _retry = 0
+                _next_transaction()
+            end
+          end
+      end
+
+  be yes(index: U64) => _reply(index where acquired = true)
+
+  be no(index: U64) => _reply(index where acquired = false)
 
   be completed() =>
-    // _env.out.print("compelted")
     _completed = _completed + 1
 
     if _completed == _transactions then
       _coordinator.done()
-      // _bench.complete()
-      // _completed = 0
-      // for account in _accounts.values() do
-      //   account.get_balance(this)
-      // end
     end
 
   be tell_balance(index: U64, amount: F64) =>
@@ -249,12 +236,12 @@ actor Account
   let index: U64
   var balance: F64
 
+  var rollback: F64
+
   var stash: Array[StashToken]
   var stash_mode: Bool
 
-  var busy: Bool
-
-  var undo: ({(Account ref)} | None)
+  var acquired: Bool
 
   new create(index': U64, balance': F64) =>
     index = index'
@@ -263,11 +250,11 @@ actor Account
     stash = Array[StashToken]
     stash_mode = false
 
-    busy = false
+    acquired = false
 
-    undo = None
+    rollback = 0
 
-  be _unstash() =>
+  be unstash() =>
     try
       match stash.shift()?
         | let m: CreditMessage => _credit(m.amount, m.manager)
@@ -277,40 +264,40 @@ actor Account
       stash_mode = false
     end
 
-  be ready(teller: Teller) =>
-    if busy then
-      teller.no()
+  be acquire(teller: Teller) =>
+    if acquired then
+      teller.no(index)
     else
-      busy = true
-      teller.yes()
-      undo = ({(account: Account ref) => account.busy = false })
+      acquired = true
+      teller.yes(index)
     end
+
+  be release(teller: Teller) =>
+    acquired = false
+    // teller.ack()
 
   be commit() =>
-    undo = None
-    _unstash()
+    rollback = 0
+    unstash()
 
   be abort() =>
-    match undo
-      | let _: None => true
-      | let f: {(Account ref)} =>
-        f(this)
-        undo = None
-    end
+    balance = balance - rollback
+    rollback = 0
+    unstash()
 
   fun ref _debit(amount: F64, manager: Manager) =>
     if balance >= amount then
       balance = balance - amount
-      undo = ({(account: Account ref) => account.balance = account.balance + amount })
+      rollback = -amount
       manager.yes(this)
     else
-      undo = None
+      rollback = 0
       manager.no(this)
     end
 
   fun ref _credit(amount: F64, manager: Manager) =>
     balance = balance + amount
-    undo = ({(account: Account ref) => account.balance = account.balance - amount })
+    rollback = amount
     manager.yes(this)
 
   be debit(amount: F64, manager: Manager) =>
@@ -320,7 +307,6 @@ actor Account
     else
       stash.push(DebitMessage(amount, manager))
     end
-    busy = false
 
   be credit(amount: F64, manager: Manager) =>
     if not stash_mode then
@@ -329,7 +315,6 @@ actor Account
     else
       stash.push(CreditMessage(amount, manager))
     end
-    busy = false
 
   be get_balance(teller: Teller) =>
     teller.tell_balance(index, balance)
