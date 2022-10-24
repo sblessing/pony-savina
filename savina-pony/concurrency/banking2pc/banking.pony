@@ -32,7 +32,7 @@ actor Coordinator
       _accounts.push(Account(i, initial))
     end
 
-    _tellers = 1
+    _tellers = 2
     for t in Range[U64](0, _tellers) do
       let accs: Array[Account] iso = Array[Account]
       for a in _accounts.values() do
@@ -131,51 +131,35 @@ actor Teller
         end
     end
 
-  fun ref _reply(index: U64, acquired: Bool) =>
+  fun ref _reply(index: U64) =>
       match _acquired
         | let _: None =>
-          if not acquired then
-            _next_transaction()
-          else // acquire the next account
-            match _pending
-              | (let source: U64, let dest: U64) =>
-                _acquired = index
-                try
-                  _accounts(source.max(dest).usize())?.acquire(this)
-                end
-            end
+          match _pending
+            | (let source: U64, let dest: U64) =>
+              _acquired = index
+              try
+                _accounts(source.max(dest).usize())?.acquire(this)
+              end
           end
         | let acc: U64 => true
-          if not acquired then
-            try
-              _accounts(acc.usize())?.release(this)
-            end
-            _next_transaction()
-          else
-            match _pending
-              | (let source: U64, let dest: U64) =>
+          match _pending
+            | (let source: U64, let dest: U64) =>
 
-                let manager = Manager(this, 2)
-                let amount = _random.nextDouble() * 1000
-                try
-                  _accounts(source.usize())?.credit(amount, manager)
-                  _accounts(dest.usize())?.debit(amount, manager)
+              let manager = Manager(this, 2)
+              let amount = _random.nextDouble() * 1000
+              try
+                _accounts(source.usize())?.credit(amount, manager)
+                _accounts(dest.usize())?.debit(amount, manager)
+              end
+              _spawned = _spawned + 1
 
-                  _accounts(source.usize())?.release(this)
-                  _accounts(dest.usize())?.release(this)
-                end
-                _spawned = _spawned + 1
-
-                _acquired = None
-                _pending = None
-                _next_transaction()
-            end
+              _acquired = None
+              _pending = None
+              _next_transaction()
           end
       end
 
-  be yes(index: U64) => _reply(index where acquired = true)
-
-  be no(index: U64) => _reply(index where acquired = false)
+  be yes(index: U64) => _reply(index)
 
   be completed() =>
     _completed = _completed + 1
@@ -211,6 +195,7 @@ actor Account
   var stash: Array[StashToken]
   var stash_mode: Bool
 
+  var acquire_stash: Array[Teller]
   var acquired: Bool
 
   new create(index': U64, balance': F64) =>
@@ -220,6 +205,7 @@ actor Account
     stash = Array[StashToken]
     stash_mode = false
 
+    acquire_stash = Array[Teller]
     acquired = false
 
     rollback = 0
@@ -236,14 +222,19 @@ actor Account
 
   be acquire(teller: Teller) =>
     if acquired then
-      teller.no(index)
+      acquire_stash.push(teller)
     else
       acquired = true
       teller.yes(index)
     end
 
-  be release(teller: Teller) =>
+  fun ref _release() =>
     acquired = false
+    try
+      match acquire_stash.shift()?
+        | let t: Teller => t.yes(index)
+      end
+    end
 
   be commit() =>
     rollback = 0
@@ -276,6 +267,7 @@ actor Account
     else
       stash.push(DebitMessage(amount, manager))
     end
+    _release()
 
   be credit(amount: F64, manager: Manager) =>
     if not stash_mode then
@@ -284,3 +276,4 @@ actor Account
     else
       stash.push(CreditMessage(amount, manager))
     end
+    _release()
