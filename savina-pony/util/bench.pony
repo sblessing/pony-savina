@@ -3,6 +3,9 @@ use "time"
 use "format"
 use "term"
 
+use @pony_ctx[Pointer[None]]()
+use @pony_triggergc[None](ctx: Pointer[None])
+
 trait AsyncActorBenchmark
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool)
   fun tag name(): String
