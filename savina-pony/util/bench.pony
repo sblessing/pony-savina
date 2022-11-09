@@ -136,7 +136,7 @@ actor Savina
 
       try
         // Trigger GC next time the Savina actor is scheduled
-        @pony_triggergc[None](@pony_ctx[Pointer[None]]())
+        @pony_triggergc(@pony_ctx())
 
         _start = Time.nanos()
     
