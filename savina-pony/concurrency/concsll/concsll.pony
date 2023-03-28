@@ -35,7 +35,7 @@ actor Master
     let list = SortedList
 
     for i in Range[U64](0, workers) do
-      Worker(this, messages, size, write, list).work()
+      Worker(i, this, messages, size, write, list).work()
     end
   
   be done() =>
@@ -52,13 +52,12 @@ actor Worker
 
   var _messages: U64
 
-  new create(master: Master, messages: U64, size: U64, write: U64, list: SortedList) =>
+  new create(id: U64, master: Master, messages: U64, size: U64, write: U64, list: SortedList) =>
     _master = master
     _size = size
     _write = write
     _list = list
-    _random = SimpleRand(messages + size + write)
-
+    _random = SimpleRand(messages + size + write + id)
     _messages = messages
  
   be work(value: U64 = 0) =>
@@ -70,9 +69,9 @@ actor Worker
       if value' < _size then
         _list.size(this)
       elseif value' < (_size + _write) then
-        _list.write(this, value')
+        _list.write(this, _random.nextLong())
       else
-        _list.contains(this, value')
+        _list.contains(this, _random.nextLong())
       end
     else
       _master.done()
@@ -104,18 +103,15 @@ class SortedLinkedList[A: Comparable[A] #read]
   let _list: List[A] = List[A]
 
   fun ref push(a: A) =>
-    if _list.size() == 0 then
-      _list.push(a)
-    else
-      for n in _list.nodes() do
-        try 
-          if n() ? <= a then
-            n.append(ListNode[A](a))
-            return
-          end 
-        end
+    for n in _list.nodes() do
+      try 
+        if n() ? <= a then
+          n.append(ListNode[A](a))
+          return
+        end 
       end
     end
+    _list.append_node(ListNode[A](a))
 
   fun contains(a: box->A): Bool =>
     _list.contains(a)
