@@ -3,12 +3,15 @@ use "time"
 use "format"
 use "term"
 
+use @pony_ctx[Pointer[None]]()
+use @pony_triggergc[None](ctx: Pointer[None])
+
 trait AsyncActorBenchmark
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool)
   fun tag name(): String
 
 interface tag BenchmarkRunner
-  fun tag benchmarks(bench: Savina, env: Env)
+  fun tag benchmarks(iterations: U64, bench: Savina, env: Env)
 
 interface tag AsyncBenchmarkCompletion 
   be complete()
@@ -112,8 +115,9 @@ actor Savina
   var _end: U64
   var _running: Bool
   var _summarize: Bool
+  var _iterations: U64
 
-  new create(env: Env, runner: BenchmarkRunner, parseable: Bool) =>
+  new create(env: Env, runner: BenchmarkRunner, parseable: Bool, iterations: U64) =>
     _benchmarks = recover List[(U64, AsyncActorBenchmark iso)] end
     _output = OutputManager(env, parseable)
     _env = env
@@ -121,8 +125,9 @@ actor Savina
     _end = 0
     _running = false
     _summarize = false
+    _iterations = iterations
 
-    runner.benchmarks(this, env)
+    runner.benchmarks(iterations, this, env)
   
   fun ref _next() =>
     if not _running then
@@ -133,7 +138,7 @@ actor Savina
 
       try
         // Trigger GC next time the Savina actor is scheduled
-        @pony_triggergc[None](@pony_ctx[Pointer[None]]())
+        @pony_triggergc(@pony_ctx())
 
         _start = Time.nanos()
     
