@@ -79,7 +79,7 @@ actor Main is BenchmarkRunner
     bench(iterations, Count(1000000))
     bench(iterations, Fib(25))
     bench(iterations, Fjcreate(40000))
-//    bench(iterations, Fjthrput(10000, 60, 1, true))
+    bench(iterations, Fjthrput(10000, 60, 1, true))
     bench(iterations, PingPong(40000))
     bench(iterations, ThreadRing(100, 100000))
     //bench(Apsp)
