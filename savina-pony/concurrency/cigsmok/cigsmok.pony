@@ -54,8 +54,6 @@ actor Smoker
   be smoke(period: U64) =>
     _arbiter.started()
 
-    var test: U64 = 0
-
     for i in Range[U64](0, period) do
-      test = test + 1
+      _random.nextInt()
     end

@@ -3,12 +3,17 @@ use "collections"
 use "time"
 use "../../util"
 
-primitive BusyWaiter
-  fun val apply(wait: U64): U32 =>
+class  BusyWaiter
+  let _rand: Rand
+
+  new create() =>
+    _rand = Rand
+
+  fun ref apply(wait: U64): U32 =>
     var test: U32 = 0
 
     for i in Range[U64](0, wait) do
-      Rand.next()
+      _rand.next()
       test = test + 1
     end
 
@@ -75,13 +80,15 @@ actor WaitingRoom
   
 actor Barber
   var _haircut_rate: U64
+  let _waiter: BusyWaiter
 
   new create(haircut_rate: U64) =>
     _haircut_rate = haircut_rate
+    _waiter = BusyWaiter
 
   be enter(customer: Customer, room: WaitingRoom) =>
     customer.sit_down()
-    BusyWaiter(Rand(Time.now()._2.u64()).int(_haircut_rate) + 10)
+    _waiter(Rand(Time.now()._2.u64()).int(_haircut_rate) + 10)
     customer.pay_and_leave()
     room.next()
   
