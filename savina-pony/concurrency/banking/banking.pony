@@ -104,9 +104,7 @@ class Stash
 
   fun ref unstash() =>
     try
-      while true do
-        _buffer.shift()?.requeue(_account)
-      end
+      _buffer.shift()?.requeue(_account)
     end
 
 actor Account
@@ -125,6 +123,7 @@ actor Account
     if not _stash_mode then
       _balance = _balance + amount
       account.reply(teller)
+      _stash.unstash()
     else
       _stash.stash(DebitMessage(account, teller, amount))
     end
