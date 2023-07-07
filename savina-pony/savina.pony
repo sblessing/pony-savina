@@ -2,6 +2,7 @@ use "./util"
 use "cli"
 use "collections"
 
+use reasonablebanking = "concurrency/banking2pc"
 use banking = "concurrency/banking"
 use barber = "concurrency/barber"
 use bndbuffer = "concurrency/bndbuffer"
@@ -68,6 +69,13 @@ class SavinaRunner is BenchmarkRunner
     _single = single
 
   fun ref benchmarks(iterations: U64, bench: Savina, env: Env) =>
+    let banking2pc: AsyncActorBenchmark iso = reasonablebanking.Banking(1000, 50000)
+
+    if _single == banking2pc.name() then
+      bench(iterations, consume banking2pc)
+      return
+    end
+
     while benches.size() > 0 do
       try
         let benchmark = benches.pop()?
@@ -84,6 +92,7 @@ class SavinaRunner is BenchmarkRunner
         env.out.print("\t" + (benches.pop()?.name()))
       end
     end
+    env.out.print("\t" + (reasonablebanking.Banking(0, 0).name()))
 
 actor Main
   new create(env: Env) =>
