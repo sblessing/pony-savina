@@ -10,8 +10,8 @@ trait AsyncActorBenchmark
   fun box apply(c: AsyncBenchmarkCompletion, last: Bool)
   fun tag name(): String
 
-interface tag BenchmarkRunner
-  fun tag benchmarks(iterations: U64, bench: Savina, env: Env)
+interface iso BenchmarkRunner
+  fun ref benchmarks(iterations: U64, bench: Savina, env: Env)
 
 interface tag AsyncBenchmarkCompletion 
   be complete()
@@ -127,7 +127,7 @@ actor Savina
     _summarize = false
     _iterations = iterations
 
-    runner.benchmarks(iterations, this, env)
+    recover runner.benchmarks(iterations, this, env) end
   
   fun ref _next() =>
     if not _running then
